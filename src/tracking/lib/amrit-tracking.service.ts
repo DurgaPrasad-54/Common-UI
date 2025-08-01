@@ -93,6 +93,16 @@ export class AmritTrackingService implements OnDestroy {
     this.trackEvent(category, 'Field Interaction', fieldName);
   }
 
+  setUserId(userId: string | number) {
+    if (userId && userId !== null && userId !== undefined && userId !== '') {
+      const userIdString = userId.toString();
+      this.trackingProvider.setUserId(userIdString);
+      console.log('User ID manually set in tracking provider:', userIdString);
+    } else {
+      console.warn('Invalid user ID provided to setUserId:', userId);
+    }
+  }
+
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
