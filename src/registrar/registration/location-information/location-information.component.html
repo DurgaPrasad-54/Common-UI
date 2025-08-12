@@ -12,6 +12,7 @@
               matInput
               type="input"
               (input)="onInputChanged($event, item.allowMax, item.fieldName)"
+              (focus)="trackFieldInteraction(item.fieldTitle)"
               placeholder="{{ item.placeholder }}"
               [required]="item.isRequired || false"
               formControlName="{{ item.fieldName }}" />
@@ -132,6 +133,7 @@
             <mat-autocomplete #auto="matAutocomplete" 
               (optionSelected)="onChangeLocation(item.fieldName, $event.option.value)">
               <mat-option *ngFor="let option of item.filteredOptions" [value]="option">
+
                 {{ option }}
               </mat-option>
             </mat-autocomplete>

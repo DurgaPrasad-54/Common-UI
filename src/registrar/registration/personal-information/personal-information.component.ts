@@ -26,6 +26,7 @@ import {
   MAT_MOMENT_DATE_ADAPTER_OPTIONS,
 } from '@angular/material-moment-adapter';
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
+import { AmritTrackingService } from 'Common-UI/src/tracking';
 
 @Component({
   selector: 'app-personal-information',
@@ -88,7 +89,8 @@ export class PersonalInformationComponent {
     private beneficiaryDetailsService: BeneficiaryDetailsService,
     private confirmationService: ConfirmationService,
     private languageComponent: SetLanguageComponent,
-    private httpServiceService: HttpServiceService
+    private httpServiceService: HttpServiceService,
+    private trackingService: AmritTrackingService 
   ) {
     this.personalInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -110,7 +112,7 @@ export class PersonalInformationComponent {
         }
       );
   }
-
+  
   ngOnInit() {
     this.fetchLanguageResponse();
     this.formData.forEach((item: any) => {
@@ -856,6 +858,10 @@ export class PersonalInformationComponent {
     this.languageComponent = new SetLanguageComponent(this.httpServiceService);
     this.languageComponent.setLanguage();
     this.currentLanguageSet = this.languageComponent.currentLanguageObject;
+  }
+
+  trackFieldInteraction(fieldName: string) {
+    this.trackingService.trackFieldInteraction(fieldName, 'Personal Information');
   }
 }
 

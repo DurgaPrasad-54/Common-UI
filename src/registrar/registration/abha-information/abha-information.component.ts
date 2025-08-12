@@ -11,6 +11,7 @@ import { Subscription } from 'rxjs';
 import { GenerateAbhaComponentComponent } from '../../abha-components/generate-abha-component/generate-abha-component.component';
 import { DownloadSearchAbhaComponent } from '../../abha-components/download-search-abha/download-search-abha.component';
 import { AbhaConsentFormComponent } from '../../abha-components/abha-consent-form/abha-consent-form.component';
+import { AmritTrackingService } from 'Common-UI/src/tracking';
 
 @Component({
   selector: 'app-abha-information',
@@ -42,7 +43,8 @@ export class AbhaInformationComponent {
     private dialog: MatDialog,
     private confirmationService: ConfirmationService,
     private httpServiceService: HttpServiceService,
-    private languageComponent: SetLanguageComponent
+    private languageComponent: SetLanguageComponent,
+    private trackingService: AmritTrackingService,
   ) {
     this.abhaInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -225,6 +227,10 @@ export class AbhaInformationComponent {
         });
       }
     });
+  }
+
+  trackFieldInteraction(fieldName: string) {
+    this.trackingService.trackFieldInteraction(fieldName, 'Abha Information');
   }
 
 }

@@ -10,6 +10,7 @@ import {
 import { RegistrarService } from '../../services/registrar.service';
 import { Subscription } from 'rxjs';
 import { SessionStorageService } from '../../services/session-storage.service';
+import { AmritTrackingService } from 'Common-UI/src/tracking'
 
 @Component({
   selector: 'app-location-information',
@@ -49,7 +50,8 @@ export class LocationInformationComponent {
   constructor(
     private fb: FormBuilder,
     private registrarService: RegistrarService,
-    private sessionstorage: SessionStorageService,
+    private sessionstorage:SessionStorageService,
+    private trackingService: AmritTrackingService
   ) {
     this.registrationSubscription = this.registrarService.abhaLocationDetails$.subscribe((result: any) => {
       if (result) {
@@ -515,5 +517,9 @@ export class LocationInformationComponent {
     if (this.registrationSubscription) {
       this.registrationSubscription.unsubscribe();
     }
+  }
+
+  trackFieldInteraction(fieldName: string) {
+    this.trackingService.trackFieldInteraction(fieldName, 'Location');
   }
 }
