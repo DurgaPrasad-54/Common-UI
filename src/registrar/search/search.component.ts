@@ -387,8 +387,8 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
     );
 
     mdDialogRef.afterClosed().subscribe((result) => {
+      
       if (result) {
-        console.log('something fishy happening here', result);
         this.advanceSearchTerm = result;
         this.registrarService
           .advanceSearchIdentity(this.advanceSearchTerm)
@@ -405,7 +405,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
                 this.dataSource.paginator = this.paginator;
                 this.quicksearchTerm = null;
                 this.confirmationService.alert(
-                  this.currentLanguageSet.alerts.info.beneficiarynotfound,
+                  this.currentLanguageSet.alerts.info.beneficiaryNotFound,
                   'info',
                 );
               } else {

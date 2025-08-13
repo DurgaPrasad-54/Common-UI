@@ -28,7 +28,7 @@ import {
   AfterViewChecked,
   DoCheck,
 } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, FormControl } from '@angular/forms';
 import { MatDialogRef } from '@angular/material/dialog';
 import { SetLanguageComponent } from 'src/app/app-modules/core/components/set-language.component';
 import { ConfirmationService } from 'src/app/app-modules/core/services';
@@ -46,6 +46,7 @@ import {
   MAT_MOMENT_DATE_ADAPTER_OPTIONS,
 } from '@angular/material-moment-adapter';
 import { SessionStorageService } from '../services/session-storage.service';
+import { map, Observable, startWith } from 'rxjs';
 
 interface Beneficary {
   firstName: string;
@@ -111,6 +112,21 @@ export class SearchDialogComponent implements OnInit, DoCheck {
 
   newSearchForm!: FormGroup;
   maxDate = new Date();
+  blockList: any[] = [];
+
+  blockID: any;
+  villageID: any;
+  villageList: any[] = [];
+
+  stateCtrl = new FormControl();
+  districtCtrl = new FormControl();
+  blockCtrl = new FormControl();
+  villageCtrl = new FormControl();
+
+  filteredStates!: Observable<any[]>;
+  filteredDistricts!: Observable<any[]>;
+  filteredBlocks!: Observable<any[]>;
+  filteredVillages!: Observable<any[]>;
 
   constructor(
     private confirmationService: ConfirmationService,
@@ -119,18 +135,135 @@ export class SearchDialogComponent implements OnInit, DoCheck {
     private fb: FormBuilder,
     private httpServiceService: HttpServiceService,
     private registrarService: RegistrarService,
-    private sessionstorage:SessionStorageService,
+    private sessionstorage: SessionStorageService,
     private changeDetectorRef: ChangeDetectorRef
-  ) {}
+  ) { }
 
   ngOnInit() {
     this.fetchLanguageResponse();
     this.newSearchForm = this.createBeneficiaryForm();
-
     // Call For MAster Data which will be loaded in Sub Components
     this.callMasterDataObservable();
     this.getStatesData(); //to be called from masterobservable method layter
     this.today = new Date();
+
+    // initialize filtering
+    this.filteredStates = this.stateCtrl.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value, this.states, 'stateName'))
+    );
+
+    this.filteredDistricts = this.districtCtrl.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value, this.districts, 'districtName'))
+    );
+
+    this.filteredBlocks = this.blockCtrl.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value, this.blockList, 'blockName'))
+    );
+
+    this.filteredVillages = this.villageCtrl.valueChanges.pipe(
+      startWith(''),
+      map(value => this._filter(value, this.villageList, 'villageName'))
+    );
+  }
+
+  private _filter(value: any, list: any[], key: string): any[] {
+    if (!value || !list) return list;
+
+    let filterValue: string;
+    if (typeof value === 'string') {
+      filterValue = value.toLowerCase();
+    } else if (value && value[key]) {
+      // If an object was selected, use its label
+      filterValue = value[key].toLowerCase();
+    } else {
+      return list;
+    }
+
+    return list.filter(option =>
+      option[key]?.toLowerCase().includes(filterValue)
+    );
+  }
+
+
+  onStateSelected(state: any) {
+    if (!state) return;
+    this.newSearchForm.get('stateID')?.setValue(state.stateID);
+    // Call service directly
+    this.registrarService.getDistrictList(state.stateID).subscribe((res: any) => {
+      if (res && res.statusCode === 200) {
+        this.districts = res.data;
+        this.districtCtrl.setValue(''); // clear district field
+        this.blockCtrl.setValue(''); // clear block field
+        this.villageCtrl.setValue(''); // clear village field
+        this.blockList = [];
+        this.villageList = [];
+      } else {
+        this.confirmationService.alert(
+          this.currentLanguageSet.alerts.info.issueFetching,
+          'error'
+        );
+      }
+    });
+  }
+
+  onDistrictSelected(district: any) {
+    if (!district) return;
+    this.newSearchForm.get('districtID')?.setValue(district.districtID);
+    // Call service directly
+    this.registrarService.getSubDistrictList(district.districtID).subscribe((res: any) => {
+      if (res && res.statusCode === 200) {
+        this.blockList = res.data;
+        this.blockCtrl.setValue(''); // clear block field
+        this.villageCtrl.setValue(''); // clear village field
+        this.villageList = [];
+      } else {
+        this.confirmationService.alert(
+          this.currentLanguageSet.alerts.info.IssuesInFetchingDemographics,
+          'error'
+        );
+      }
+    });
+  }
+
+  onBlockSelected(block: any) {
+    if (!block) return;
+    this.newSearchForm.get('blockID')?.setValue(block.blockID);
+    // Call service directly
+    this.registrarService.getVillageList(block.blockID).subscribe((res: any) => {
+      if (res && res.statusCode === 200) {
+        this.villageList = res.data;
+        this.villageCtrl.setValue(''); // clear village field
+      } else {
+        this.confirmationService.alert(
+          this.currentLanguageSet.alerts.info.IssuesInFetchingLocationDetails,
+          'error'
+        );
+      }
+    });
+  }
+
+  onVillageSelected(village: any) {
+    if (!village) return;
+    this.newSearchForm.get('villageID')?.setValue(village.districtBranchID);
+  }
+
+  displayStateFn(state?: any): string {
+    return state ? state.stateName : '';
+  }
+
+  displayDistrictFn(district?: any): string {
+    return district ? district.districtName : '';
+  }
+
+  displayBlockFn(block?: any): string {
+    return block ? block.blockName : '';
+  }
+
+  displayVillageFn(village?: any): string {
+    return village ? village.villageName : '';
   }
 
   AfterViewChecked() {
@@ -146,14 +279,26 @@ export class SearchDialogComponent implements OnInit, DoCheck {
       gender: [null, Validators.required],
       stateID: [null, Validators.required],
       districtID: [null, Validators.required],
+      blockID: [null],
+      villageID: [null],
     });
   }
-
   resetBeneficiaryForm() {
     this.newSearchForm.reset();
+
+    // Reset the autocomplete FormControls
+    this.stateCtrl.setValue('');
+    this.districtCtrl.setValue('');
+    this.blockCtrl.setValue('');
+    this.villageCtrl.setValue('');
+
+    // Clear the lists so dropdowns are empty
+    this.districts = [];
+    this.blockList = [];
+    this.villageList = [];
+
     this.getStatesData();
   }
-
   /**
    *
    * Call Master Data Observable
@@ -209,7 +354,7 @@ export class SearchDialogComponent implements OnInit, DoCheck {
     console.log(this.govtIDs, 'idsss');
   }
 
-  onIDCardSelected() {}
+  onIDCardSelected() { }
 
   /**
    * get states from localstorage and set default state
@@ -225,33 +370,11 @@ export class SearchDialogComponent implements OnInit, DoCheck {
           this.locations.otherLoc.stateID;
         this.newSearchForm.controls['districtID'] =
           this.locations.otherLoc.districtList[0].districtID;
-        this.onStateChange();
+        // this.onStateChange();
       }
     }
   }
 
-  onStateChange() {
-    const stateIDVal: any = this.newSearchForm.controls['stateID'].value;
-    if (stateIDVal) {
-      this.registrarService
-        .getDistrictList(stateIDVal)
-        .subscribe((res: any) => {
-          if (res && res.statusCode === 200) {
-            this.districts = res.data;
-          } else {
-            this.confirmationService.alert(
-              this.currentLanguageSet.alerts.info.issueFetching,
-              'error'
-            );
-            this.matDialogRef.close(false);
-          }
-        });
-    }
-  }
-  // getStates() {
-  //   this.commonService.getStates(this.countryId).subscribe(res => {this.states = res});
-
-  // }
 
   getDistricts(stateID: any) {
     this.commonService.getDistricts(stateID).subscribe(res => {
@@ -271,6 +394,8 @@ export class SearchDialogComponent implements OnInit, DoCheck {
       i_bendemographics: {
         stateID: formValues.stateID,
         districtID: formValues.districtID,
+        blockID: formValues.blockID,
+        villageID: formValues.villageID,
       },
     };
     //Passing form data to component and closing the dialog
