@@ -93,8 +93,6 @@ export class PersonalInformationComponent {
     private languageComponent: SetLanguageComponent,
     private httpServiceService: HttpServiceService,
     private injector: Injector
-
-    // private trackingService: AmritTrackingService 
   ) {
     this.personalInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -332,22 +330,7 @@ export class PersonalInformationComponent {
     }
   }
 
-  changeLiteracyStatus() {
-    const literacyStatus = this.personalInfoFormGroup.value.literacyStatus;
-
-    if (literacyStatus !== 'Literate') {
-      console.log(this.personalInfoFormGroup.controls, 'controls');
-      // this.personalInfoFormGroup.controls['educationQualification'].clearValidators();
-      console.log(
-        this.personalInfoFormGroup.controls['educationQualification'],
-        'controls'
-      );
-    } else {
-      this.personalInfoFormGroup.controls['educationQualification'].reset();
-    }
-  }
-
-  /**
+ /**
    * Phone Number Parent Relations
    */
   getParentDetails() {
