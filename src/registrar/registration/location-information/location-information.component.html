@@ -115,29 +115,31 @@
           </mat-radio-group>
         </div>
 
-        <div
-          class="col-xs-12 col-sm-6 col-md-4 col-lg-4"
-          *ngIf="item?.fieldType?.toLowerCase() === 'dropdown'"
-        >
-          <mat-form-field
-            class="input-full-width backgroundWhite fieldForHRP dropdownfontStyle"
-          >
-            <mat-label> {{ item.fieldTitle }}</mat-label>
-            <mat-select
-              matInput
-              type="select"
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4" *ngIf="item?.fieldType?.toLowerCase() === 'dropdown'">
+        
+          <mat-form-field class="input-full-width backgroundWhite fieldForHRP dropdownfontStyle">
+            <mat-label>{{ item.fieldTitle }}</mat-label>
+
+            <input
+               matInput
+              [placeholder]="item.placeholder"
               [required]="item.isRequired || false"
-              placeholder="{{ item.placeholder }}"
-              formControlName="{{ item.fieldName }}"
-              (selectionChange)="onChangeLocation(item.fieldName, $event.value); trackFieldInteraction(item.fieldTitle)"
-            >
-              <mat-option *ngFor="let option of item.options" [value]="option">
+              [formControlName]="item.fieldName"
+              [matAutocomplete]="auto"
+              (input)="filterOptions(item)"
+              (focus)="showAllOptions(item)"
+            />
+
+            <mat-autocomplete #auto="matAutocomplete" 
+              (optionSelected)="onChangeLocation(item.fieldName, $event.option.value)">
+              <mat-option *ngFor="let option of item.filteredOptions" [value]="option">
+
                 {{ option }}
               </mat-option>
-            </mat-select>
+            </mat-autocomplete>
           </mat-form-field>
         </div>
-      </ng-container>
+       </ng-container>
     </div>
   </form>
 </div>

@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Injector, Input } from '@angular/core';
 import { Router } from '@angular/router';
 import { RegistrarService } from '../../services/registrar.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -44,7 +44,8 @@ export class AbhaInformationComponent {
     private confirmationService: ConfirmationService,
     private httpServiceService: HttpServiceService,
     private languageComponent: SetLanguageComponent,
-    private trackingService: AmritTrackingService,
+    private injector: Injector
+    
   ) {
     this.abhaInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -230,7 +231,8 @@ export class AbhaInformationComponent {
   }
 
   trackFieldInteraction(fieldName: string) {
-    this.trackingService.trackFieldInteraction(fieldName, 'Abha Information');
+    const trackingService = this.injector.get(AmritTrackingService);
+    trackingService.trackFieldInteraction(fieldName, 'Abha Information');
   }
 
 }

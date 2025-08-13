@@ -27,6 +27,8 @@ import {
 } from '@angular/material-moment-adapter';
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
 import { AmritTrackingService } from 'Common-UI/src/tracking';
+import { Injector } from '@angular/core';
+
 
 @Component({
   selector: 'app-personal-information',
@@ -90,7 +92,7 @@ export class PersonalInformationComponent {
     private confirmationService: ConfirmationService,
     private languageComponent: SetLanguageComponent,
     private httpServiceService: HttpServiceService,
-    private trackingService: AmritTrackingService 
+    private injector: Injector
   ) {
     this.personalInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -328,22 +330,7 @@ export class PersonalInformationComponent {
     }
   }
 
-  changeLiteracyStatus() {
-    const literacyStatus = this.personalInfoFormGroup.value.literacyStatus;
-
-    if (literacyStatus !== 'Literate') {
-      console.log(this.personalInfoFormGroup.controls, 'controls');
-      // this.personalInfoFormGroup.controls['educationQualification'].clearValidators();
-      console.log(
-        this.personalInfoFormGroup.controls['educationQualification'],
-        'controls'
-      );
-    } else {
-      this.personalInfoFormGroup.controls['educationQualification'].reset();
-    }
-  }
-
-  /**
+ /**
    * Phone Number Parent Relations
    */
   getParentDetails() {
@@ -861,7 +848,8 @@ export class PersonalInformationComponent {
   }
 
   trackFieldInteraction(fieldName: string) {
-    this.trackingService.trackFieldInteraction(fieldName, 'Personal Information');
+    const trackingService = this.injector.get(AmritTrackingService);
+    trackingService.trackFieldInteraction(fieldName, 'Personal Information');
   }
 }
 
@@ -870,8 +858,6 @@ export function maxLengthValidator(maxLength: number): ValidatorFn {
     const value = control.value;
 
     if (value && value.length > maxLength) {
-      console.log('maxLnegthvalidator', value);
-
       return { maxLengthExceeded: true };
     }
 
