@@ -335,7 +335,6 @@ export class SearchDialogComponent implements OnInit, DoCheck {
         this.newSearchForm.controls['genderName'] = element.genderName;
       }
     });
-    console.log(this.newSearchForm.controls, 'csdvde');
   }
 
   /**
@@ -343,7 +342,6 @@ export class SearchDialogComponent implements OnInit, DoCheck {
    */
 
   govtIDData() {
-    console.log(this.masterData, 'govtidddds');
     const govID = this.masterData.govIdEntityMaster;
     const otherGovID = this.masterData.otherGovIdEntityMaster;
 
@@ -351,7 +349,6 @@ export class SearchDialogComponent implements OnInit, DoCheck {
       govID.push(element);
     });
     this.govtIDs = govID;
-    console.log(this.govtIDs, 'idsss');
   }
 
   onIDCardSelected() { }
@@ -370,7 +367,6 @@ export class SearchDialogComponent implements OnInit, DoCheck {
           this.locations.otherLoc.stateID;
         this.newSearchForm.controls['districtID'] =
           this.locations.otherLoc.districtList[0].districtID;
-        // this.onStateChange();
       }
     }
   }
