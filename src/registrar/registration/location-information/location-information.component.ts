@@ -11,6 +11,7 @@ import { RegistrarService } from '../../services/registrar.service';
 import { Subscription } from 'rxjs';
 import { SessionStorageService } from '../../services/session-storage.service';
 import { AmritTrackingService } from 'Common-UI/src/tracking'
+import { Injector } from '@angular/core';
 
 @Component({
   selector: 'app-location-information',
@@ -51,7 +52,8 @@ export class LocationInformationComponent {
     private fb: FormBuilder,
     private registrarService: RegistrarService,
     private sessionstorage:SessionStorageService,
-    private trackingService: AmritTrackingService
+    private injector: Injector
+
   ) {
     this.registrationSubscription = this.registrarService.abhaLocationDetails$.subscribe((result: any) => {
       if (result) {
@@ -520,6 +522,7 @@ export class LocationInformationComponent {
   }
 
   trackFieldInteraction(fieldName: string) {
-    this.trackingService.trackFieldInteraction(fieldName, 'Location');
+    const trackingService = this.injector.get(AmritTrackingService);
+    trackingService.trackFieldInteraction(fieldName, 'Location');
   }
 }
