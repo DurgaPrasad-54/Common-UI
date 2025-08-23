@@ -192,6 +192,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
   }
   generateOtpForMapping() {
     this.showProgressBar = true;
+    const abdmFacilityId = this.sessionstorage.getItem("abdmFacilityId");
+    const abdmFacilityName = this.sessionstorage.getItem("abdmFacilityName");
     const reqObj = {
       healthID: this.selectedHealthID.healthId
         ? this.selectedHealthID.healthId
@@ -200,6 +202,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
         ? this.selectedHealthID.healthIdNumber
         : null,
       authenticationMode: this.selectedHealthID.authenticationMode,
+      abdmFacilityId: (abdmFacilityId !== null && abdmFacilityId !== undefined && abdmFacilityId !== "") ? abdmFacilityId : null,
+      abdmFacilityName: (abdmFacilityName !== null && abdmFacilityName !== undefined && abdmFacilityName !== "") ? abdmFacilityName : null
     };
     this.registrarService.generateOtpForMappingCareContext(reqObj).subscribe(
       (receivedOtpResponse: any) => {
@@ -260,6 +264,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
 
   verifyOtp() {
     this.showProgressBar = true;
+    const abdmFacilityId = this.sessionstorage.getItem("abdmFacilityId");
+    const abdmFacilityName = this.sessionstorage.getItem("abdmFacilityName");
     const verifyOtpData = {
       otp: this.healthIdOTPForm.controls['otp'].value,
       txnId: this.transactionId,
@@ -275,6 +281,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
         this.sessionstorage.getItem('visitCategory') === 'General OPD (QC)'
           ? 'Emergency'
           : this.sessionstorage.getItem('visitCategory'),
+      abdmFacilityId: (abdmFacilityId !== null && abdmFacilityId !== undefined && abdmFacilityId !== "") ? abdmFacilityId : null,
+      abdmFacilityName: (abdmFacilityName !== null && abdmFacilityName !== undefined && abdmFacilityName !== "") ? abdmFacilityName : null
     };
     this.registrarService
       .verifyOtpForMappingCarecontext(verifyOtpData)
