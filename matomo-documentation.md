@@ -1,6 +1,6 @@
-# Matomo on Arch Linux: A Comprehensive Setup Guide
+# Matomo on Ubuntu: A Comprehensive Setup Guide
 
-This document provides a complete, step-by-step guide for installing **Matomo**, a powerful open-source web analytics platform, on an **Arch Linux**.
+This document provides a complete, step-by-step guide for installing **Matomo**, a powerful open-source web analytics platform, on an **Ubuntu** system.
 
 This setup utilizes a robust and modern stack:
 * **nginx** and **PHP-FPM** run directly on the host for optimal performance.
@@ -12,7 +12,7 @@ This setup utilizes a robust and modern stack:
 
 Before you begin, ensure your system meets the following requirements:
 
-* You have an **Linux** system.
+* You have an **Ubuntu** system (18.04 LTS or later recommended).
 * **Docker** is installed and running.
 * You have a user with `sudo` privileges.
 * You have a running MySQL container. For this guide, we'll assume its name is `amrit-mysql`.
@@ -49,18 +49,20 @@ First, we'll create a dedicated database and user for Matomo within your Dockeri
 
 ## 📦 3. Install Host Dependencies
 
-Next, install nginx, PHP, and the necessary PHP extensions on your Arch Linux host.
+Next, install nginx, PHP, and the necessary PHP extensions on your Ubuntu host.
 
-1.  **Install packages using Pacman:**
+1.  **Update package list and install packages using APT:**
     ```bash
-    sudo pacman -Syu nginx php php-fpm unzip wget
+    sudo apt update
+    sudo apt install -y nginx php-fpm php-mysql php-xml php-gd php-mbstring php-curl php-zip unzip wget
     ```
 
 2.  **Enable and start the services:**
-    The `enable --now` command both starts the services immediately and ensures they launch automatically on system boot.
     ```bash
-    sudo systemctl enable --now php-fpm nginx
+    sudo systemctl enable nginx php8.1-fpm
+    sudo systemctl start nginx php8.1-fpm
     ```
+    > **Note:** Replace `php8.1-fpm` with your PHP version if different. You can check with `php --version`.
 
 ---
 
@@ -70,29 +72,33 @@ Now, we will download the latest version of Matomo and place it in the web serve
 
 1.  **Create the web directory and set initial ownership:**
     ```bash
-    sudo mkdir -p /srv/http/matomo
-    sudo chown $USER:$USER /srv/http/matomo
+    sudo mkdir -p /var/www/matomo
+    sudo chown $USER:$USER /var/www/matomo
     ```
 
 2.  **Download and extract the Matomo files:**
     This sequence downloads the latest release, extracts it to a temporary folder, moves the contents to the final destination, and cleans up the temporary files.
     ```bash
     cd ~
-    wget [https://builds.matomo.org/matomo-latest.zip](https://builds.matomo.org/matomo-latest.zip)
+    wget https://builds.matomo.org/matomo-latest.zip
     unzip matomo-latest.zip -d matomo-temp
-    mv matomo-temp/matomo/* /srv/http/matomo/
+    mv matomo-temp/matomo/* /var/www/matomo/
     rm -rf matomo-temp matomo-latest.zip
     ```
 
 3.  **Set final file permissions:**
-    It's crucial to set the correct ownership and permissions so that the web server (`http` user) can read, write, and execute files as needed.
+    It's crucial to set the correct ownership and permissions so that the web server (`www-data` user) can read, write, and execute files as needed.
     ```bash
     # Set ownership to the web server user
-    sudo chown -R http:http /srv/http/matomo
+    sudo chown -R www-data:www-data /var/www/matomo
     
-    # Set standard permissions: 775 for directories, 664 for files
-    sudo find /srv/http/matomo -type d -exec chmod 775 {} \;
-    sudo find /srv/http/matomo -type f -exec chmod 664 {} \;
+    # Set standard permissions: 755 for directories, 644 for files
+    sudo find /var/www/matomo -type d -exec chmod 755 {} \;
+    sudo find /var/www/matomo -type f -exec chmod 644 {} \;
+    
+    # Set write permissions for specific directories that Matomo needs to write to
+    sudo chmod -R 755 /var/www/matomo/tmp
+    sudo chmod -R 755 /var/www/matomo/config
     ```
 
 ---
@@ -102,19 +108,18 @@ Now, we will download the latest version of Matomo and place it in the web serve
 We need to tell nginx how to serve the Matomo application. We'll do this by creating a dedicated virtual host configuration file.
 
 1.  **Create the nginx virtual host file:**
-    The following command creates the configuration file at `/etc/nginx/sites-available/matomo.conf`.
+    The following command creates the configuration file at `/etc/nginx/sites-available/matomo`.
     ```bash
-    sudo mkdir -p /etc/nginx/sites-available
-    sudo tee /etc/nginx/sites-available/matomo.conf > /dev/null << 'EOF'
+    sudo tee /etc/nginx/sites-available/matomo > /dev/null << 'EOF'
     server {
         listen 80 default_server;
         server_name localhost; # Replace with your domain in production
 
-        root   /srv/http/matomo;
-        index  index.php;
+        root /var/www/matomo;
+        index index.php;
 
-        access_log  /var/log/nginx/matomo.access.log;
-        error_log   /var/log/nginx/matomo.error.log;
+        access_log /var/log/nginx/matomo.access.log;
+        error_log /var/log/nginx/matomo.error.log;
 
         # Standard file serving
         location / {
@@ -124,10 +129,8 @@ We need to tell nginx how to serve the Matomo application. We'll do this by crea
         # Pass PHP scripts to PHP-FPM
         location ~ \.php$ {
             try_files $uri =404;
-            include        fastcgi_params;
-            fastcgi_pass   unix:/run/php-fpm/php-fpm.sock;
-            fastcgi_index  index.php;
-            fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
         }
 
         # Block access to sensitive directories for security
@@ -140,26 +143,32 @@ We need to tell nginx how to serve the Matomo application. We'll do this by crea
         location ~ /\.ht {
             deny all;
         }
+
+        # Block access to sensitive files
+        location ~ \.(ini|log|conf)$ {
+            deny all;
+        }
     }
     EOF
     ```
+    > **Note:** Replace `php8.1-fpm.sock` with your PHP version if different.
 
-2.  **Enable the new site configuration:**
-    We create a symbolic link from the `sites-available` directory to `sites-enabled`. This is a common practice that makes it easy to enable or disable sites.
+2.  **Disable the default nginx site and enable Matomo:**
     ```bash
-    sudo mkdir -p /etc/nginx/sites-enabled
-    sudo ln -sf /etc/nginx/sites-available/matomo.conf /etc/nginx/sites-enabled/matomo.conf
+    sudo unlink /etc/nginx/sites-enabled/default
+    sudo ln -s /etc/nginx/sites-available/matomo /etc/nginx/sites-enabled/
     ```
 
 3.  **Ensure the main `nginx.conf` includes virtual hosts:**
-    Open `/etc/nginx/nginx.conf` and verify that the `http` block contains the following line. It's usually there by default on Arch Linux.
+    Open `/etc/nginx/nginx.conf` and verify that the `http` block contains the following line. It's usually there by default on Ubuntu.
     ```nginx
     http {
         # ... other directives
-        include /etc/nginx/sites-enabled/*.conf;
+        include /etc/nginx/sites-enabled/*;
         # ... other directives
     }
     ```
+    > **Note:** Ubuntu uses `/etc/nginx/sites-enabled/*` (without `.conf` extension) unlike some other distributions.
 
 4.  **Test and reload nginx:**
     Always test the configuration before applying it.
@@ -187,5 +196,25 @@ With the backend configured, you can now complete the installation through the w
     * **Set up a Website**: Enter the details of the first website you want to track.
     * **JavaScript Tracking Code**: Copy the provided snippet. You will add this to the pages of the website you want to track.
     * **Done**: The installation is complete! Proceed to your Matomo dashboard.
+
+---
+
+## 🔧 7. Additional Ubuntu-Specific Notes
+
+* **Firewall Configuration**: If you have UFW enabled, allow HTTP traffic:
+  ```bash
+  sudo ufw allow 'Nginx HTTP'
+  ```
+
+* **PHP Version Management**: Ubuntu often has multiple PHP versions. Check your active version:
+  ```bash
+  php --version
+  sudo systemctl status php*-fpm
+  ```
+
+* **Troubleshooting**: If you encounter permission issues, ensure the web server user has proper access:
+  ```bash
+  sudo usermod -a -G www-data $USER
+  ```
 
 
