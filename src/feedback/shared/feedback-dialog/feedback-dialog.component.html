@@ -1,0 +1,79 @@
+<div class="fb-wrap">
+  <div
+    class="fb-card"
+    role="dialog"
+    aria-labelledby="fb-title"
+    aria-describedby="fb-desc"
+  >
+    <h2 id="fb-title" class="fb-title">You have logged out of the session</h2>
+    <p id="fb-desc" class="fb-subtitle">
+      We’d love to hear about your experience (optional)
+    </p>
+
+    <!-- Stars with labels -->
+    <div class="fb-stars" role="radiogroup" aria-label="Rate your experience">
+      <button
+        *ngFor="let s of stars; index as i"
+        type="button"
+        class="fb-star"
+        [class.fb-star--active]="s <= form.value.rating!"
+        (click)="setRating(s)"
+        [attr.aria-checked]="s === form.value.rating"
+        role="radio"
+        [attr.aria-label]="['Terrible', 'Bad', 'Okay', 'Good', 'Great'][s - 1]"
+      >
+        <span class="fb-star-icon">★</span>
+        <span class="fb-star-text">{{
+          ["Terrible", "Bad", "Okay", "Good", "Great"][s - 1]
+        }}</span>
+      </button>
+    </div>
+
+    <hr class="fb-sep" />
+
+    <!-- Category (only if loaded) -->
+    <div class="fb-row" *ngIf="showCategory">
+      <label class="fb-label" for="fb-cat">Category</label>
+      <select
+        id="fb-cat"
+        class="fb-select"
+        [formControl]="form.controls['categorySlug']"
+      >
+        <option value="" disabled>Select a category</option>
+        <option *ngFor="let c of categories" [value]="c.Slug">
+          {{ c.Label }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Comment -->
+    <div class="fb-row">
+      <textarea
+        class="fb-textarea"
+        placeholder="How we can make it better…"
+        [formControl]="form.controls['comment']"
+        maxlength="2000"
+        aria-label="Tell us more (optional)"
+        spellcheck="false"
+      ></textarea>
+      <div class="fb-hint">{{ form.value.comment?.length || 0 }} / 2000</div>
+    </div>
+
+    <div class="fb-actions">
+      <button
+        class="fb-btn"
+        [disabled]="submitting || formInvalidForNow()"
+        (click)="submit()"
+      >
+        Okay
+      </button>
+    </div>
+
+    <div class="fb-foot" *ngIf="error">
+      <span class="fb-error">{{ error }}</span>
+    </div>
+    <div class="fb-foot" *ngIf="successId">
+      <span class="fb-success">Thanks! Feedback ID: {{ successId }}</span>
+    </div>
+  </div>
+</div>
