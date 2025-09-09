@@ -2,14 +2,14 @@ import { Injectable } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
 import { Observable } from "rxjs";
 
-export type ServiceLine = "1097" | "104" | "HWC" | "MMU" | "TM" | "ECD";
+export type ServiceLine = "1097" | "104" | "AAM" | "MMU" | "TM" | "ECD";
 
 export interface CategoryDto {
-  CategoryID: string;
-  Slug: string;
-  Label: string;
-  Scope: "GLOBAL" | ServiceLine;
-  Active: boolean;
+  categoryID: string;
+  slug: string;
+  label: string;
+  scope: "GLOBAL" | ServiceLine;
+  active: boolean;
 }
 
 export interface SubmitFeedbackRequest {
@@ -22,20 +22,20 @@ export interface SubmitFeedbackRequest {
 
 @Injectable()
 export class FeedbackService {
-  private readonly apiBase = "/common-api"; // centralize if you want to inject later
+  private readonly apiBase = "http://localhost:8083"; // centralize if you want to inject later
 
   constructor(private http: HttpClient) {}
 
   listCategories(serviceLine: ServiceLine): Observable<CategoryDto[]> {
     const params = new HttpParams().set("serviceLine", serviceLine);
-    return this.http.get<CategoryDto[]>(`${this.apiBase}/feedback/categories`, {
-      params,
-    });
+    return this.http.get<CategoryDto[]>(
+      `${this.apiBase}/platform-feedback/categories`,
+    );
   }
 
   submitFeedback(payload: SubmitFeedbackRequest) {
     return this.http.post<{ id: string; createdAt?: string }>(
-      `${this.apiBase}/feedback`,
+      `${this.apiBase}/platform-feedback`,
       payload,
     );
   }
