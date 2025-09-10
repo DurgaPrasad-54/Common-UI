@@ -1,3 +1,24 @@
+/*
+ * AMRIT – Accessible Medical Records via Integrated Technology
+ * Integrated EHR (Electronic Health Records) Solution
+ *
+ * Copyright (C) "Piramal Swasthya Management and Research Institute"
+ *
+ * This file is part of AMRIT.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see https://www.gnu.org/licenses/.
+ */
 import { Component, Input, OnInit } from "@angular/core";
 import { FormBuilder, Validators } from "@angular/forms";
 import {
@@ -6,6 +27,7 @@ import {
   CategoryDto,
 } from "../../services/feedback.service";
 import { finalize } from "rxjs/operators";
+import { SessionStorageService } from "Common-UI/src/registrar/services/session-storage.service";
 
 @Component({
   selector: "app-feedback-dialog",
@@ -40,12 +62,13 @@ export class FeedbackDialogComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private api: FeedbackService,
+    private sessionStorage: SessionStorageService,
   ) {}
 
   ngOnInit() {
     // sessionStorage check
     try {
-      this.storedUserId = sessionStorage.getItem("userID") || undefined;
+      this.storedUserId = this.sessionStorage.getItem("userID") || undefined;
       this.isLoggedIn = !!this.storedUserId;
     } catch (e) {
       // sessionStorage may be unavailable in some runners; fail safe to anonymous
@@ -70,7 +93,7 @@ export class FeedbackDialogComponent implements OnInit {
           (c: any) => (c as any).active ?? true,
         );
         this.showCategory = this.categories.length > 0;
-        const def = this.defaultCategorySlug || this.categories[0]?.slug || "";
+        const def = this.categories[0]?.slug || this.defaultCategorySlug || "";
         if (def) this.form.controls.categorySlug.setValue(def);
       },
       error: () => (this.error = "Could not load categories."),
@@ -88,9 +111,7 @@ export class FeedbackDialogComponent implements OnInit {
 
   formInvalidForNow(): boolean {
     // require rating >=1 and category selected
-    return (
-      !this.form.controls.rating.value || !this.form.controls.categorySlug.value
-    );
+    return this.form.invalid;
   }
 
   submit() {

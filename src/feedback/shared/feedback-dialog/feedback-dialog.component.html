@@ -42,6 +42,8 @@
         id="fb-cat"
         class="fb-select"
         [formControl]="form.controls['categorySlug']"
+        aria-placeholder="Select a category"
+        aria-label="Select a category"
       >
         <option value="" disabled>Select a category</option>
         <option *ngFor="let c of categories" [value]="c.slug">
@@ -101,7 +103,7 @@
       <span class="fb-error">{{ error }}</span>
     </div>
     <div class="fb-foot" *ngIf="successId">
-      <span class="fb-success">Thanks! Feedback ID: {{ successId }}</span>
+      <span class="fb-success">Thanks! Your Feedback ID: {{ successId }}</span>
     </div>
   </div>
 </div>
