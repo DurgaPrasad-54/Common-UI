@@ -8,12 +8,17 @@
     <h2 id="fb-title" class="fb-title">
       {{
         isLoggedIn
-          ? "We value your feedback"
-          : "You have logged out of the session"
+          ? (current_language_set?.platform_feedback?.weValueYourFeedback ??
+            "We value your feedback")
+          : (current_language_set?.platform_feedback?.youHaveLoggedOut ??
+            "You have logged out of the session")
       }}
     </h2>
     <p id="fb-desc" class="fb-subtitle">
-      We’d love to hear about your experience (optional)
+      {{
+        current_language_set?.platform_feedback?.subtitle ??
+          "We’d love to hear about your experience (optional)"
+      }}
     </p>
 
     <!-- Stars with labels -->
@@ -37,7 +42,9 @@
 
     <!-- Category (only if loaded) -->
     <div class="fb-row" *ngIf="showCategory">
-      <label class="fb-label" for="fb-cat">Category</label>
+      <label class="fb-label" for="fb-cat">{{
+        current_language_set?.platform_feedback?.category ?? "Category"
+      }}</label>
       <select
         id="fb-cat"
         class="fb-select"
@@ -45,7 +52,12 @@
         aria-placeholder="Select a category"
         aria-label="Select a category"
       >
-        <option value="" disabled>Select a category</option>
+        <option value="" disabled>
+          {{
+            current_language_set?.platform_feedback?.selectCategory ??
+              "Select a category"
+          }}
+        </option>
         <option *ngFor="let c of categories" [value]="c.slug">
           {{ c.label }}
         </option>
@@ -76,15 +88,20 @@
             aria-label="Submit anonymously"
           />
           <span class="fb-checkbox-label">
-            Submit anonymously (if unchecked, we will store your user id for
-            follow-up)
+            {{
+              current_language_set?.platform_feedback?.loggedInConsent ??
+                "Submit anonymously (if unchecked, we will store your user id for follow-up)"
+            }}
           </span>
         </label>
       </ng-container>
 
       <ng-template #loggedOutText>
         <div class="fb-logged-out-note">
-          You are not logged in, this feedback will be submitted anonymously.
+          {{
+            current_language_set?.platform_feedback?.anonymousInfo ??
+              "You are not logged in, this feedback will be submitted anonymously."
+          }}
         </div>
       </ng-template>
     </div>
@@ -95,7 +112,7 @@
         [disabled]="submitting || formInvalidForNow()"
         (click)="submit()"
       >
-        Okay
+        {{ current_language_set?.platform_feedback?.okay ?? "Okay" }}
       </button>
     </div>
 
@@ -103,7 +120,12 @@
       <span class="fb-error">{{ error }}</span>
     </div>
     <div class="fb-foot" *ngIf="successId">
-      <span class="fb-success">Thanks! Your Feedback ID: {{ successId }}</span>
+      <span class="fb-success"
+        >{{
+          current_language_set?.platform_feedback?.thankYou ??
+            "Thank you, your feedback is valuable to us!"
+        }}
+      </span>
     </div>
   </div>
 </div>

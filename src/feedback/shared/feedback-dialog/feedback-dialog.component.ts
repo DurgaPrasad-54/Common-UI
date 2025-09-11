@@ -28,6 +28,8 @@ import {
 } from "../../services/feedback.service";
 import { finalize } from "rxjs/operators";
 import { SessionStorageService } from "Common-UI/src/registrar/services/session-storage.service";
+import { HttpServiceService } from "src/app/app-modules/core/services/http-service.service";
+import { SetLanguageComponent } from "src/app/app-modules/core/components/set-language.component";
 
 @Component({
   selector: "app-feedback-dialog",
@@ -58,14 +60,17 @@ export class FeedbackDialogComponent implements OnInit {
     // default to true for logged-out; we'll set actual default in ngOnInit
     isAnonymous: [true],
   });
+  current_language_set: any;
 
   constructor(
     private fb: FormBuilder,
     private api: FeedbackService,
     private sessionStorage: SessionStorageService,
+    public httpService: HttpServiceService
   ) {}
 
   ngOnInit() {
+    this.assignSelectedLanguage();
     // sessionStorage check
     try {
       this.storedUserId = this.sessionStorage.getItem("userID") || undefined;
@@ -90,7 +95,7 @@ export class FeedbackDialogComponent implements OnInit {
     this.api.listCategories(this.serviceLine).subscribe({
       next: (list) => {
         this.categories = (list || []).filter(
-          (c: any) => (c as any).active ?? true,
+          (c: any) => (c as any).active ?? true
         );
         this.showCategory = this.categories.length > 0;
         const def = this.categories[0]?.slug || this.defaultCategorySlug || "";
@@ -98,6 +103,12 @@ export class FeedbackDialogComponent implements OnInit {
       },
       error: () => (this.error = "Could not load categories."),
     });
+  }
+
+  assignSelectedLanguage() {
+    const getLanguageJson = new SetLanguageComponent(this.httpService);
+    getLanguageJson.setLanguage();
+    this.current_language_set = getLanguageJson.currentLanguageObject;
   }
 
   setRating(n: number) {
