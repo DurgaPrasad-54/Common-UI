@@ -19,7 +19,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see https://www.gnu.org/licenses/.
  */
-import { Component, Input, OnInit } from "@angular/core";
+import { Component, Input, OnInit, Inject } from "@angular/core";
 import { FormBuilder, Validators } from "@angular/forms";
 import {
   FeedbackService,
@@ -28,8 +28,7 @@ import {
 } from "../../services/feedback.service";
 import { finalize } from "rxjs/operators";
 import { SessionStorageService } from "Common-UI/src/registrar/services/session-storage.service";
-import { HttpServiceService } from "src/app/app-modules/core/services/http-service.service";
-import { SetLanguageComponent } from "src/app/app-modules/core/components/set-language.component";
+import { SetLanguageService } from "src/app/app-modules/services/set-language/set-language.service";
 
 @Component({
   selector: "app-feedback-dialog",
@@ -66,11 +65,11 @@ export class FeedbackDialogComponent implements OnInit {
     private fb: FormBuilder,
     private api: FeedbackService,
     private sessionStorage: SessionStorageService,
-    public httpService: HttpServiceService
+    @Inject(SetLanguageService) private setLanguageService: SetLanguageService,
   ) {}
 
   ngOnInit() {
-    this.assignSelectedLanguage();
+    this.getSelectedLanguage();
     // sessionStorage check
     try {
       this.storedUserId = this.sessionStorage.getItem("userID") || undefined;
@@ -93,7 +92,7 @@ export class FeedbackDialogComponent implements OnInit {
 
     // load categories
     this.api.listCategories(this.serviceLine).subscribe({
-      next: (list) => {
+      next: (list:any) => {
         this.categories = (list || []).filter(
           (c: any) => (c as any).active ?? true
         );
@@ -105,10 +104,12 @@ export class FeedbackDialogComponent implements OnInit {
     });
   }
 
-  assignSelectedLanguage() {
-    const getLanguageJson = new SetLanguageComponent(this.httpService);
-    getLanguageJson.setLanguage();
-    this.current_language_set = getLanguageJson.currentLanguageObject;
+  getSelectedLanguage() {
+    if (
+      this.setLanguageService.languageData !== undefined &&
+      this.setLanguageService.languageData !== null
+    )
+      this.current_language_set = this.setLanguageService.languageData;
   }
 
   setRating(n: number) {
@@ -155,7 +156,7 @@ export class FeedbackDialogComponent implements OnInit {
       .submitFeedback(payload)
       .pipe(finalize(() => (this.submitting = false)))
       .subscribe({
-        next: (res) => {
+        next: (res: any) => {
           this.successId = res?.id || "submitted";
           // reset form but keep identity default
           this.form.reset({
@@ -165,7 +166,7 @@ export class FeedbackDialogComponent implements OnInit {
             isAnonymous: this.isLoggedIn ? true : true,
           });
         },
-        error: (e) => {
+        error: (e:any) => {
           if (e?.status === 429) {
             this.error = "Too many attempts. Try later.";
           } else if (e?.error?.error) {
