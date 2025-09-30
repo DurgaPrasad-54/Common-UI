@@ -1,220 +1,307 @@
-# Matomo on Ubuntu: A Comprehensive Setup Guide
+# Matomo Tracking System Documentation
 
-This document provides a complete, step-by-step guide for installing **Matomo**, a powerful open-source web analytics platform, on an **Ubuntu** system.
+## Table of Contents
 
-This setup utilizes a robust and modern stack:
-* **nginx** and **PHP-FPM** run directly on the host for optimal performance.
-* **MySQL** is containerized using **Docker** for easy management and isolation.
+1. [Overview](#overview)
+2. [How It Works](#how-it-works)
+3. [Setup and Configuration](#setup-and-configuration)
+4. [Adding Tracking to Components](#adding-tracking-to-components)
+5. [Adding a New Website to Matomo](#adding-a-new-website-to-matomo)
+6. [API Reference](#api-reference)
+7. [Best Practices](#tips-we-can-use-while-adding-tracking)
+8. [Troubleshooting](#troubleshooting)
+
+## Overview
+
+The Amrit tracking system is a flexible analytics solution that supports multiple tracking providers (Matomo, Google Analytics) with a unified interface. It automatically tracks page views, user interactions, and custom events throughout your Angular application.
+
+### Key Features
+
+- Multiple provider support (Matomo, Google Analytics)
+- Automatic page view tracking
+- User identification tracking
+- Environment-based configuration
+- Built-in error handling and fallbacks
+- Rich event tracking capabilities
+
+## How It Works
+
+### System Architecture Diagram
+
+![Amrit Tracking System Architecture](src/assets/images/tracking-high-level-diagram.png)
+
+*High-level architecture showing the complete data flow from Angular components to external analytics platforms*
+
+### Architecture Overview
+
+The Amrit tracking system follows a layered architecture pattern:
+
+#### 1. Configuration Layer
+- **TrackingModule**: Provides dependency injection configuration
+- **Environment Configuration**: Defines platform-specific settings (Matomo/GA)
+- **Injection Tokens**: Enable flexible provider configuration
+
+#### 2. Platform Services Layer
+- **Matomo Tracking Service**: Handles Matomo-specific tracking implementation
+- **Google Analytics Tracking Service**: Handles GA-specific tracking implementation
+- **Provider Selection**: Dynamically selects the appropriate service based on configuration
+
+#### 3. Amrit Tracking Interface Layer
+- **Router Integration**: Automatic page view tracking via Angular Router events
+- **Session Management**: User session and ID management
+- **Error Handling**: Graceful fallback mechanisms
+- **Method Abstraction**: Unified tracking methods (trackEvent, trackButtonClick, etc.)
+
+#### 4. Application Components Layer
+- **Manual/Automatic Tracking**: Components can trigger tracking events
+- **User Session Layer**: Provides user ID for session tracking
+- **Enabled/Disable Flag**: Conditional tracking based on environment settings
+
+#### 5. External Analytics Layer
+- **Matomo Server**: Receives HTTP tracking data via matomo.php endpoint
+- **Google Analytics**: Receives tracking data via GA tracking endpoints
+
+```
+┌─────────────────────┐    ┌──────────────────────┐     ┌─────────────────────┐
+│  Angular Component  │───▶│  AmritTrackingService │───▶│  TrackingProvider   │
+└─────────────────────┘    └──────────────────────┘     │  (Matomo/GA)        │
+                                      │                 └─────────────────────┘
+                                      ▼                            │
+                           ┌──────────────────────┐                ▼
+                           │  Router Events       │    ┌─────────────────────┐
+                           │  (Auto Page Tracking)│    │  External Analytics │
+                           └──────────────────────┘    │  Platform           │
+                                                       └─────────────────────┘
+```
+
+### Component Interaction Flow
+
+1. **Initialization**: `AmritTrackingService` loads the appropriate tracking provider based on environment configuration
+2. **Auto-tracking**: Router events are automatically captured for page view tracking
+3. **Manual tracking**: Components can call tracking methods for custom events
+4. **Provider delegation**: All tracking calls are forwarded to the configured provider (Matomo/GA)
+
+## Setup and Configuration
+
+### 1. Environment Configuration
+
+Add tracking configuration to your environment files:
+
+```typescript
+// src/environments/environment.ts
+export const environment = {
+  // ... other config
+  tracking: {
+    platform: "matomo", // or 'ga'
+    siteId: 1,
+    trackerUrl: "https://matomo.piramalswasthya.org/",
+    trackingPlatform: "platform",
+    enabled: true,
+  },
+};
+```
+
+### 2. Module Import
+
+Import the tracking module in your app module:
+
+```typescript
+// app.module.ts
+import { TrackingModule } from "Common-UI/src/tracking";
+
+@NgModule({
+  imports: [
+    // ... other imports
+    TrackingModule.forRoot(),
+  ],
+  // ...
+})
+export class AppModule {}
+```
+
+## Adding Tracking to Components
+
+### Basic Component Integration
+
+Here's how to add tracking to any Angular component:
+
+```typescript
+import { Component } from "@angular/core";
+import { AmritTrackingService } from "@common-ui/tracking";
+
+@Component({
+  selector: "app-user-registration",
+  templateUrl: "./user-registration.component.html",
+})
+export class UserRegistrationComponent {
+  constructor(private trackingService: AmritTrackingService) {}
+
+  // Track button clicks
+  onSubmitRegistration() {
+    this.trackingService.trackButtonClick("Submit Registration");
+    this.trackingService.trackFormSubmit("User Registration Form");
+  }
+
+  // Track field interactions
+  trackFieldInteraction(fieldName: string) {
+    this.trackingService.trackFieldInteraction(fieldName, "Facility Selection");
+  }
+}
+```
+
+### Template Integration
+
+Add tracking to template interactions:
+
+```html
+<!-- user-registration.component.html -->
+<form (ngSubmit)="onSubmitRegistration()">
+  <input
+    type="text"
+    placeholder="Username"
+    (focus)="trackFieldInteraction('username')"
+  />
+
+  <input
+    type="email"
+    placeholder="Email"
+    (focus)="trackFieldInteraction('email')"
+  />
+
+  <button
+    type="button"
+    (click)="trackFieldInteraction('Show Password Requirements')"
+  >
+    Show Requirements
+  </button>
+
+  <button type="submit" (click)="trackFieldInteraction('Registration Form')">
+    Register
+  </button>
+</form>
+```
+
+## Adding a New Website to Matomo
+
+### Step 1: Access Matomo Admin Panel
+
+1. Log into your Matomo instance admin panel
+2. Navigate to **Administration** → **Websites** → **Manage**
+
+### Step 2: Add New Website
+
+1. Click **"Add a new website"**
+2. Fill in the website details:
+   ```
+   Website Name: Your Website Name
+   Website URL: https://yourwebsite.com
+   Time zone: Select appropriate timezone
+   Currency: Select currency if e-commerce tracking needed
+   ```
+
+### Step 3: Get Tracking Information
+
+After creating the website, Matomo will provide:
+
+- **Site ID**: A unique number (e.g., 3)
+- **Tracking URL**: Your Matomo instance URL
+
+### Step 4: Configure Your Application
+
+Update your environment configuration:
+
+```typescript
+// src/environments/environment.prod.ts
+export const environment = {
+  tracking: {
+    enabled: true,
+    platform: "matomo",
+    siteId: 3, // The new Site ID from Matomo
+    trackerUrl: "https://matomo.piramalswasthya.org/",
+  },
+};
+```
+
+### Step 5: Verify Tracking
+
+1. Deploy your application with the new configuration
+2. Visit your website
+3. Check Matomo dashboard for incoming data
+4. Navigate to **Visitors** → **Real-time** to see live visitors
+
+
+## API Reference
+
+### AmritTrackingService Methods
+
+| Method                    | Parameters                                                         | Description                      |
+| ------------------------- | ------------------------------------------------------------------ | -------------------------------- |
+| `trackEvent()`            | `category: string, action: string, label?: string, value?: number` | Track custom events              |
+| `trackButtonClick()`      | `buttonName: string`                                               | Track button interactions        |
+| `trackFormSubmit()`       | `formName: string`                                                 | Track form submissions           |
+| `trackFeatureUsage()`     | `featureName: string`                                              | Track feature utilization        |
+| `trackFieldInteraction()` | `fieldName: string, category?: string`                             | Track form field interactions    |
+| `setUserId()`             | `userId: string \| number`                                         | Set user identifier for tracking |
+
+### Event Categories
+
+| Category       | Purpose                      | Example Actions                                    |
+| -------------- | ---------------------------- | -------------------------------------------------- |
+| `UI`           | User interface interactions  | `ButtonClick`, `MenuOpen`, `TabSwitch`             |
+| `Form`         | Form-related activities      | `Submit`, `Validation Error`, `Field Focus`        |
+| `Feature`      | Feature usage tracking       | `Usage`, `Enable`, `Configure`                     |
+| `Registration` | User registration flow       | `Field Interaction`, `Step Complete`, `Validation` |
+| `Navigation`   | Page and route changes       | `Page View`, `Route Change`, `Back Button`         |
+
+### Tips we can use while adding tracking
+- <b>Inputs:</b> Can use (focus) to call the tracking function so that it calls only once for the input.
+
+- <b>Dropdowns (mat-select):</b> Can use (selectionChange) to call function to track events.
+
+- <b>Buttons:</b> Can use (click) to call function to track events.
+Use the field label plus 'Button' (e.g., 'Advance Search Button').
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Events not appearing in Matomo**
+
+   ```typescript
+   // Check if tracking is enabled
+   console.log("Tracking enabled:", environment.tracking.enabled);
+
+   // Verify site ID and URL
+   console.log("Site ID:", environment.tracking.siteId);
+   console.log("Tracker URL:", environment.tracking.trackerUrl);
+
+   // Check browser console for errors
+   ```
+
+2. **Script loading failures**
+
+   ```typescript
+   // Check network connectivity to Matomo instance
+   // Verify CORS settings on Matomo server
+   // Check Content Security Policy (CSP) headers
+   ```
+
+3. **User ID not being set**
+
+   ```typescript
+   // Verify session storage service is working
+   const userId = this.sessionStorage.getItem("userID");
+   console.log("Retrieved User ID:", userId);
+
+### Support
+
+For additional support:
+
+1. Check Matomo documentation: https://matomo.org/docs/
+2. Review browser developer tools for errors
+3. Test with Matomo's real-time visitor log
+4. Verify network requests to tracking endpoint
 
 ---
 
-## 📋 1. Prerequisites
-
-Before you begin, ensure your system meets the following requirements:
-
-* You have an **Ubuntu** system (18.04 LTS or later recommended).
-* **Docker** is installed and running.
-* You have a user with `sudo` privileges.
-* You have a running MySQL container. For this guide, we'll assume its name is `amrit-mysql`.
-
----
-
-## 🐬 2. Prepare the MySQL Database
-
-First, we'll create a dedicated database and user for Matomo within your Dockerized MySQL container. This script is idempotent, meaning it will safely `DROP` and recreate the database and user if they already exist, ensuring a clean slate.
-
-1.  **Verify the MySQL container is running:**
-    ```bash
-    docker ps
-    ```
-    *You should see your MySQL container in the output list.*
-
-2.  **Execute the database setup script:**
-    This command logs into your MySQL container and runs a series of SQL commands to prepare the environment.
-
-    ```bash
-    # Replace 'amrit-mysql' with your container name and 'root123' with your MySQL root password.
-    docker exec -i amrit-mysql mysql -uroot -proot123 <<'EOF'
-    DROP DATABASE IF EXISTS matomo_db;
-    DROP USER IF EXISTS 'matomo_user'@'%';
-    CREATE DATABASE matomo_db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-    CREATE USER 'matomo_user'@'%' IDENTIFIED BY 'matomo123';
-    GRANT ALL PRIVILEGES ON matomo_db.* TO 'matomo_user'@'%';
-    FLUSH PRIVILEGES;
-    EOF
-    ```
-    > **Note:** This creates a user named `matomo_user` with the password `matomo123`. For a production environment, always use a strong, securely generated password.
-
----
-
-## 📦 3. Install Host Dependencies
-
-Next, install nginx, PHP, and the necessary PHP extensions on your Ubuntu host.
-
-1.  **Update package list and install packages using APT:**
-    ```bash
-    sudo apt update
-    sudo apt install -y nginx php-fpm php-mysql php-xml php-gd php-mbstring php-curl php-zip unzip wget
-    ```
-
-2.  **Enable and start the services:**
-    ```bash
-    sudo systemctl enable nginx php8.1-fpm
-    sudo systemctl start nginx php8.1-fpm
-    ```
-    > **Note:** Replace `php8.1-fpm` with your PHP version if different. You can check with `php --version`.
-
----
-
-## 📂 4. Download Matomo
-
-Now, we will download the latest version of Matomo and place it in the web server's root directory, setting the correct permissions.
-
-1.  **Create the web directory and set initial ownership:**
-    ```bash
-    sudo mkdir -p /var/www/matomo
-    sudo chown $USER:$USER /var/www/matomo
-    ```
-
-2.  **Download and extract the Matomo files:**
-    This sequence downloads the latest release, extracts it to a temporary folder, moves the contents to the final destination, and cleans up the temporary files.
-    ```bash
-    cd ~
-    wget https://builds.matomo.org/matomo-latest.zip
-    unzip matomo-latest.zip -d matomo-temp
-    mv matomo-temp/matomo/* /var/www/matomo/
-    rm -rf matomo-temp matomo-latest.zip
-    ```
-
-3.  **Set final file permissions:**
-    It's crucial to set the correct ownership and permissions so that the web server (`www-data` user) can read, write, and execute files as needed.
-    ```bash
-    # Set ownership to the web server user
-    sudo chown -R www-data:www-data /var/www/matomo
-    
-    # Set standard permissions: 755 for directories, 644 for files
-    sudo find /var/www/matomo -type d -exec chmod 755 {} \;
-    sudo find /var/www/matomo -type f -exec chmod 644 {} \;
-    
-    # Set write permissions for specific directories that Matomo needs to write to
-    sudo chmod -R 755 /var/www/matomo/tmp
-    sudo chmod -R 755 /var/www/matomo/config
-    ```
-
----
-
-## ⚙️ 5. Configure Nginx
-
-We need to tell nginx how to serve the Matomo application. We'll do this by creating a dedicated virtual host configuration file.
-
-1.  **Create the nginx virtual host file:**
-    The following command creates the configuration file at `/etc/nginx/sites-available/matomo`.
-    ```bash
-    sudo tee /etc/nginx/sites-available/matomo > /dev/null << 'EOF'
-    server {
-        listen 80 default_server;
-        server_name localhost; # Replace with your domain in production
-
-        root /var/www/matomo;
-        index index.php;
-
-        access_log /var/log/nginx/matomo.access.log;
-        error_log /var/log/nginx/matomo.error.log;
-
-        # Standard file serving
-        location / {
-            try_files $uri $uri/ =404;
-        }
-
-        # Pass PHP scripts to PHP-FPM
-        location ~ \.php$ {
-            try_files $uri =404;
-            include snippets/fastcgi-php.conf;
-            fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
-        }
-
-        # Block access to sensitive directories for security
-        location ~ ^/(config|tmp|core|lang) {
-            deny all;
-            return 403;
-        }
-
-        # Block access to .htaccess files
-        location ~ /\.ht {
-            deny all;
-        }
-
-        # Block access to sensitive files
-        location ~ \.(ini|log|conf)$ {
-            deny all;
-        }
-    }
-    EOF
-    ```
-    > **Note:** Replace `php8.1-fpm.sock` with your PHP version if different.
-
-2.  **Disable the default nginx site and enable Matomo:**
-    ```bash
-    sudo unlink /etc/nginx/sites-enabled/default
-    sudo ln -s /etc/nginx/sites-available/matomo /etc/nginx/sites-enabled/
-    ```
-
-3.  **Ensure the main `nginx.conf` includes virtual hosts:**
-    Open `/etc/nginx/nginx.conf` and verify that the `http` block contains the following line. It's usually there by default on Ubuntu.
-    ```nginx
-    http {
-        # ... other directives
-        include /etc/nginx/sites-enabled/*;
-        # ... other directives
-    }
-    ```
-    > **Note:** Ubuntu uses `/etc/nginx/sites-enabled/*` (without `.conf` extension) unlike some other distributions.
-
-4.  **Test and reload nginx:**
-    Always test the configuration before applying it.
-    ```bash
-    sudo nginx -t && sudo systemctl reload nginx
-    ```
-
----
-
-## 6. Run the Matomo Web Installer
-
-With the backend configured, you can now complete the installation through the web interface.
-
-1.  Navigate to **`http://localhost` or `http://127.0.0.1/`** (or your server's IP/domain) in your browser.
-2.  Follow the on-screen instructions:
-    * **System Check**: Matomo will check if all dependencies are met. Click **Next**.
-    * **Database Setup**: Enter the credentials we created in Step 2.
-        * Database Server: `127.0.0.1`
-        * Login: `matomo_user`
-        * Password: `matomo123`
-        * Database Name: `matomo_db`
-        * Table Prefix: `matomo_`
-        * Adapter: `PDO\MYSQL`
-    * **Super User**: Create your primary administrator account.
-    * **Set up a Website**: Enter the details of the first website you want to track.
-    * **JavaScript Tracking Code**: Copy the provided snippet. You will add this to the pages of the website you want to track.
-    * **Done**: The installation is complete! Proceed to your Matomo dashboard.
-
----
-
-## 🔧 7. Additional Ubuntu-Specific Notes
-
-* **Firewall Configuration**: If you have UFW enabled, allow HTTP traffic:
-  ```bash
-  sudo ufw allow 'Nginx HTTP'
-  ```
-
-* **PHP Version Management**: Ubuntu often has multiple PHP versions. Check your active version:
-  ```bash
-  php --version
-  sudo systemctl status php*-fpm
-  ```
-
-* **Troubleshooting**: If you encounter permission issues, ensure the web server user has proper access:
-  ```bash
-  sudo usermod -a -G www-data $USER
-  ```
-
-
+_Last updated: September 2025_

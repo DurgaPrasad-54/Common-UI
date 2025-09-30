@@ -12,7 +12,7 @@ export const TRACKING_ENABLED = new InjectionToken<boolean>('tracking.enabled', 
     factory: () => environment.tracking.enabled,
   });
 
-export const MATOMO_SITE_ID = new InjectionToken<number>('matomo.siteId', {
+export const MATOMO_SITE_ID = new InjectionToken<string | number>('tracking.siteId', {
   providedIn: 'root',
   factory: () => environment.tracking.siteId, 
 });

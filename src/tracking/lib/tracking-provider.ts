@@ -1,5 +1,5 @@
 export interface TrackingProvider {
-    init(siteId?: number, trackerUrl?: string): void;
+    init(siteId?: number | string, trackerUrl?: string): void;
     setUserId(userId: string): void;
     pageView(path: string): void;
     event(
