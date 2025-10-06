@@ -261,6 +261,20 @@ export class RegistrarService {
     return this.http.get(environment.getAbdmMappedFacility + reqObj);
   }
 
+  generateTokenForCareContext(reqObj: any) {
+    return this.http.post(
+      environment.generateLinkTokenForCareContext,
+      reqObj,
+    );
+  }
+
+  linkCareContext(reqObj: any) {
+  return this.http.post(  
+    environment.linkCareContext,
+    reqObj,
+  );
+  }
+
   generateOtpForMappingCareContext(reqObjForMapping: any) {
     return this.http.post(
       environment.careContextGenerateOtpUrl,

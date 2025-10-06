@@ -29,7 +29,7 @@ import {
 } from '@angular/material/dialog';
 import { MatTableDataSource } from '@angular/material/table';
 import { SetLanguageComponent } from 'src/app/app-modules/core/components/set-language.component';
-import { ConfirmationService } from 'src/app/app-modules/core/services';
+import { BeneficiaryDetailsService, ConfirmationService } from 'src/app/app-modules/core/services';
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
 import { RegistrarService } from '../../services/registrar.service';
 import {
@@ -116,6 +116,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
     'rblMode',
   ];
   healthIDArray = new MatTableDataSource<any>();
+  linkToken: any;
+  beneficiaryDetails: any;
 
   constructor(
     public dialogRef: MatDialogRef<HealthIdDisplayModalComponent>,
@@ -127,6 +129,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
     private datePipe: DatePipe,
     private dialogMd: MatDialog,
     private sessionstorage:SessionStorageService,
+    private beneficiaryDetailsService: BeneficiaryDetailsService,
+    
   ) {
     dialogRef.disableClose = true;
   }
@@ -137,10 +141,10 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
     this.selectedHealthID = null;
     this.searchPopup = false;
     this.assignSelectedLanguage();
-    this.searchPopup =
-      this.input.search !== undefined ? this.input.search : false;
+    this.searchPopup = this.input.search !== undefined ? this.input.search : false;
     this.healthIDMapping = this.input.healthIDMapping;
     console.log("this.healthIDMapping", this.healthIDMapping);
+    this.getBeneficiaryDetails();
     if (
       this.input.dataList !== undefined &&
       this.input.search === true
@@ -190,6 +194,85 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
   onRadioChange(data: any) {
     this.selectedHealthID = data;
   }
+
+  beneficiaryDetailSubscription: any;
+  getBeneficiaryDetails() {
+    this.beneficiaryDetailSubscription =
+      this.beneficiaryDetailsService.beneficiaryDetails$.subscribe(
+        (beneficiary) => {
+          if (beneficiary) {
+            if (beneficiary) {
+              this.beneficiaryDetails = beneficiary;
+            }
+          }
+        });
+      }
+
+  generateTokenForLinking() {
+    this.showProgressBar = true;
+    const abdmFacilityId = this.sessionstorage.getItem("abdmFacilityId");
+    const abdmFacilityName = this.sessionstorage.getItem("abdmFacilityName");
+    const dateString = this.beneficiaryDetails.dOB;
+    const yearOfBirth = new Date(dateString).getFullYear();
+
+    const reqObj = {
+      healthID: this.selectedHealthID.healthId
+        ? this.selectedHealthID.healthId
+        : null,
+      healthIdNumber: this.selectedHealthID.healthIdNumber
+        ? this.selectedHealthID.healthIdNumber
+        : null,
+      name: this.beneficiaryDetails.beneficiaryName,
+      gender: this.beneficiaryDetails.genderName,
+      yearOfBirth: yearOfBirth,
+      visitCode: this.input.visitCode,
+      visitCategory: this.beneficiaryDetails.VisitCategory,
+      abdmFacilityId: (abdmFacilityId !== null && abdmFacilityId !== undefined && abdmFacilityId !== "") ? abdmFacilityId : null,
+      abdmFacilityName: (abdmFacilityName !== null && abdmFacilityName !== undefined && abdmFacilityName !== "") ? abdmFacilityName : null
+    };
+    this.registrarService.generateTokenForCareContext(reqObj).subscribe(
+      (res: any) => {
+        if (res.statusCode === 200) {
+          this.showProgressBar = false;
+          this.confirmationService.alert(
+            this.currentLanguageSet.pleaseWaitWhileLinkingCareContext,
+            'info',
+          );
+          this.linkToken = res.data.linkToken;
+        } else {
+          this.confirmationService.alert(
+            res.errorMessage,
+            'error',
+          );
+        }
+      },
+      (err) => {
+        this.showProgressBar = false;
+        this.confirmationService.alert(err.errorMessage, 'error');
+      },
+    );
+  }
+
+  linkCareContext() {
+    if (this.linkToken !== null && this.linkToken !== undefined) {
+      let reqObj = {
+        linkToken: this.linkToken,
+        abdmFacilityId: this.sessionstorage.getItem("abdmFacilityId"),
+        abdmFacilityName: this.sessionstorage.getItem("abdmFacilityName"),
+        visitCode: this.input.visitCode,
+        visitCategory: this.beneficiaryDetails.VisitCategory,
+        visitReason: this.beneficiaryDetails.VisitReason,
+        beneficiaryId: this.beneficiaryDetails.beneficiaryID,
+        hiTypes: []
+      };
+      this.registrarService.linkCareContext(reqObj).subscribe((res: any) => {
+        if (res.statusCode === 200) {
+          this.showProgressBar = false;
+        }
+      });
+    }
+  }
+
   generateOtpForMapping() {
     this.showProgressBar = true;
     const abdmFacilityId = this.sessionstorage.getItem("abdmFacilityId");
