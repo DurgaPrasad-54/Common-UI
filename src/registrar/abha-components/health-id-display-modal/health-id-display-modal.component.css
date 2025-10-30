@@ -57,3 +57,139 @@ md2-pagination {
     padding: 0px;
   }
   
+  /* Aadhaar Verification Panel - Material You pastel style */
+
+  .aadhaar-verify-panel {
+      background: linear-gradient(135deg, #f3f8ff, #f9fbff);
+      border: 1px solid #dbe7ff;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 20px;
+      box-shadow: 0 1px 4px rgba(25, 118, 210, 0.08);
+      transition: box-shadow 0.25s ease, background 0.25s ease;
+
+      &:hover {
+          background: #ffffff;
+          box-shadow: 0 3px 10px rgba(25, 118, 210, 0.1);
+      }
+
+      .aadhaar-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+
+          .aadhaar-heading {
+              strong {
+                  font-weight: 600;
+                  color: #1a237e;
+                  font-size: 15px;
+              }
+
+              .aadhaar-subtext {
+                  font-size: 12.5px;
+                  color: #5f6368;
+                  margin-top: 2px;
+              }
+          }
+
+          .aadhaar-reset-btn {
+              color: #1976d2;
+              transition: transform 0.15s ease;
+
+              &:hover {
+                  transform: rotate(90deg);
+              }
+          }
+      }
+
+      .aadhaar-verify-form {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+          margin-top: 14px;
+
+          .aadhaar-field {
+              flex: 1 1 240px;
+              min-width: 180px;
+
+              &.small {
+                  width: 140px;
+              }
+
+              ::ng-deep .mat-form-field-flex {
+                  background: #ffffff;
+                  border-radius: 6px;
+              }
+          }
+      }
+
+      .aadhaar-actions {
+          display: flex;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-top: 16px;
+
+          .aadhaar-apply-btn {
+              background-color: #1976d2;
+              color: white;
+              font-weight: 500;
+              letter-spacing: 0.3px;
+              border-radius: 8px;
+              min-width: 190px;
+
+              &:hover {
+                  background-color: #1565c0;
+              }
+
+              &:disabled {
+                  background-color: #bbdefb;
+                  color: white;
+              }
+          }
+
+          .aadhaar-reset-text-btn {
+              border-color: #1976d2;
+              color: #1976d2;
+
+              &:hover {
+                  background: rgba(25, 118, 210, 0.05);
+              }
+          }
+
+          .aadhaar-note {
+              margin-left: 10px;
+              color: #5f6368;
+              font-size: 12.5px;
+              flex: 1 1 100%;
+          }
+      }
+
+      @media (max-width: 768px) {
+          padding: 12px;
+
+          .aadhaar-verify-form {
+              flex-direction: column;
+          }
+
+          .aadhaar-actions {
+              flex-direction: column;
+              align-items: stretch;
+
+              .aadhaar-apply-btn,
+              .aadhaar-reset-text-btn {
+                  width: 100%;
+              }
+
+              .aadhaar-note {
+                  text-align: center;
+                  margin-top: 8px;
+              }
+          }
+      }
+  }
+
+  /* Optional: subtle transition for mat-form-field focus */
+  ::ng-deep .mat-form-field-appearance-fill .mat-form-field-flex {
+      transition: box-shadow 0.15s ease;
+  }

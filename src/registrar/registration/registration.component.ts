@@ -337,7 +337,7 @@ export class RegistrationComponent {
           const reqObj = {
             beneficiaryRegID: null,
             beneficiaryID: numb,
-            healthId: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
+            healthId: this.mainForm.controls['abhaInfoForm'].value['healthId'],
             healthIdNumber: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
             providerServiceMapId: this.sessionstorage.getItem('providerServiceID'),
             authenticationMode: null,
@@ -345,7 +345,9 @@ export class RegistrationComponent {
           };
           if 
             (this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'] !== undefined &&
-            this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'] !== null)  {
+            this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'] !== null &&
+            this.mainForm.controls['abhaInfoForm'].value['healthId'] !== undefined &&
+            this.mainForm.controls['abhaInfoForm'].value['healthId'] !== null)  {
             this.registrarService.mapHealthId(reqObj).subscribe((res: any) => {
               if (res.statusCode === 200) {
                 // this.confirmationService.alert(res.data.response, 'success');
@@ -513,7 +515,7 @@ export class RegistrationComponent {
               const reqObj = {
                 beneficiaryRegID: null,
                 beneficiaryID: personalForm.beneficiaryID,
-                healthId: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
+                healthId: this.mainForm.controls['abhaInfoForm'].value['healthId'],
                 healthIdNumber: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
                 authenticationMode: null,
                 providerServiceMapId: this.sessionstorage.getItem('providerServiceID'),
