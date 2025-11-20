@@ -135,7 +135,6 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
   };
   public aadhaarVerified = false;
   public currentYear = new Date().getFullYear();
-
   constructor(
     public dialogRef: MatDialogRef<HealthIdDisplayModalComponent>,
     @Inject(MAT_DIALOG_DATA) public input: any,
@@ -150,6 +149,22 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
   ) {
     dialogRef.disableClose = true;
   }
+
+  private closeConfirmationAlertIfOpen() {
+    try {
+      if (this.lastAlertRef) {
+        this.lastAlertRef.close();
+        this.lastAlertRef = null;
+      }
+    } catch (e) {
+      console.warn("Failed to close confirmation alert", e);
+    }
+  }
+
+  // Keep a reference to the last confirmationService alert dialog so we can close
+  // it when another dialog (MatDialog) is opened on top.
+  private lastAlertRef: MatDialogRef<any> | null = null;
+
 
   ngOnInit() {
     console.log("this.input", this.input);
@@ -629,9 +644,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
 
             // Success markers (linked)
             const linkedFlag =
-              data?.linked === true ||
-              !!data?.careContextId ||
-              data?.status === "Linked";
+              data?.statusCode === 200 && data?.status === "Success";
 
             if (linkedFlag) {
               this.stopLinkCareContextPolling();
@@ -788,9 +801,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
             }
 
             const linkedFlag =
-              data?.linked === true ||
-              !!data?.careContextId ||
-              data?.status === "Linked";
+              data?.statusCode === 200 && data?.status === "Success";
 
             if (linkedFlag) {
               this.stopLinkCareContextPolling();
@@ -920,6 +931,9 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
       return;
     }
 
+    // Close any existing confirmation alert before opening the Aadhaar correction dialog
+    this.closeConfirmationAlertIfOpen();
+
     const dialogRef = this.dialogMd.open(AadhaarCorrectionDialogComponent, {
       width: "420px",
       data: {
@@ -1015,7 +1029,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           return;
         }
 
-        // ⚙️ CASE 2: Successful token — start polling
+        // CASE 2: Successful token — start polling
         if (data?.linkToken) {
           this.linkToken = data.linkToken;
           if (data?.requestId) this.persistRequestIdToSession(data.requestId);
@@ -1030,7 +1044,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           return;
         }
 
-        // 🔄 CASE 3: Success (200) but only requestId, no linkToken
+        // CASE 3: Success (200) but only requestId, no linkToken
         if (data?.requestId && !data?.linkToken) {
           this.persistRequestIdToSession(data.requestId);
           this.confirmationService.alert(
@@ -1043,7 +1057,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           return;
         }
 
-        // ❌ CASE 4: Duplicate or other backend signals
+        //  CASE 4: Duplicate or other backend signals
         const fallbackMsg =
           res?.errorMessage ?? res?.status ?? "Failed to generate link token";
 
@@ -1055,7 +1069,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           return;
         }
 
-        // ❗ CASE 5: Unknown/invalid
+        // CASE 5: Unknown/invalid
         this.confirmationService.alert(fallbackMsg, "error");
       },
       (err) => {
@@ -1236,6 +1250,9 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
   }
 
   printHealthIDCard(data: any) {
+    // Close any lingering confirmation alert before opening the print dialog
+    this.closeConfirmationAlertIfOpen();
+
     const dialogRefValue = this.dialogMd.open(DownloadSearchAbhaComponent, {
       height: "330px",
       width: "500px",
