@@ -314,58 +314,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
   // small guard to suppress any automatic re-trigger events while manual resubmit running
   private suppressAutoGenerate = false;
 
-  private getRequestIdStorageKey(): string {
-    const abha = this.selectedHealthID?.healthIdNumber ?? null;
-    const fallback =
-      this.beneficiaryDetails?.beneficiaryID ?? "unknown_beneficiary";
-    return `linkRequestId_${abha ?? fallback}`;
-  }
-
-  private persistRequestIdToSession(requestId: string) {
-    try {
-      const key = this.getRequestIdStorageKey();
-      // use your sessionstorage service if available; fallback to window.sessionStorage
-      if (
-        this.sessionstorage &&
-        typeof this.sessionstorage.setItem === "function"
-      ) {
-        this.sessionstorage.setItem(key, requestId);
-      } else {
-        sessionStorage.setItem(key, requestId);
-      }
-      console.debug(`[link] persisted requestId ${requestId} to ${key}`);
-    } catch (e) {
-      console.warn("[link] failed to persist requestId to sessionStorage", e);
-    }
-  }
-
-  private readRequestIdFromSession(): string | null {
-    try {
-      const key = this.getRequestIdStorageKey();
-      if (
-        this.sessionstorage &&
-        typeof this.sessionstorage.getItem === "function"
-      ) {
-        return this.sessionstorage.getItem(key);
-      }
-      return sessionStorage.getItem(key);
-    } catch (e) {
-      console.warn("[link] failed to read requestId from sessionStorage", e);
-      return null;
-    }
-  }
-
-  private extractRequestIdFromString(s?: string): string | null {
-    if (!s) return null;
-    const match = s.match(
-      /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/,
-    );
-    return match ? match[0] : null;
-  }
-
-  // ---------- Primary: generateTokenForLinking() (single combined version) ----------
   generateTokenForLinking() {
-    // guard: prevent concurrent generates
     if (this.isGenerating) {
       console.debug(
         "[link] generateTokenForLinking suppressed because already generating",
@@ -411,12 +360,20 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
         this.showProgressBar = false;
         const data = res?.data ?? null;
 
-        // normalize any Error payload (backend might use `error` or `Error`)
+        if (data?.linkToken) {
+          this.linkToken = data.linkToken;
+          this.startLinkCareContextPolling();
+          return;
+        }
+
+        if (data?.requestId && !data?.linkToken) {
+          const requestId = data.requestId;
+          this.resumeViaSecondApi(requestId, reqObj);
+          return;
+        }
+
         const dataError = data?.Error ?? data?.error ?? null;
         if (dataError) {
-          // persist requestId if backend included it alongside the error
-          if (data?.requestId) this.persistRequestIdToSession(data.requestId);
-
           const serverMsg =
             dataError?.Message ??
             dataError?.message ??
@@ -432,35 +389,6 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           return;
         }
 
-        // happy path: linkToken present -> start polling
-        if (data?.linkToken) {
-          if (data?.requestId) this.persistRequestIdToSession(data.requestId);
-          this.linkToken = data.linkToken;
-          this.confirmationService.alert(
-            this.currentLanguageSet.pleaseWaitWhileLinkingCareContext ||
-              "Please wait while linking care context",
-            "info",
-          );
-          this.startLinkCareContextPolling();
-          return;
-        }
-
-        // CASE: data.requestId present (no linkToken)
-        if (data?.requestId && !data?.linkToken) {
-          // persist and immediately call second API to resume/check status
-          const requestId = data.requestId;
-          this.persistRequestIdToSession(requestId);
-          this.confirmationService.alert(
-            "Request received. Resuming check with server...",
-            "info",
-          );
-
-          // call second API to resume — this will either return linkToken, linked, or an error
-          this.resumeViaSecondApi(requestId, reqObj);
-          return;
-        }
-
-        // Fallback: some servers return duplicate as a wrapped string in res.errorMessage/status
         const fallbackMsg =
           res?.errorMessage ?? res?.status ?? "Failed to generate link token";
 
@@ -468,12 +396,10 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           String(fallbackMsg).toLowerCase().includes("duplicate") ||
           String(fallbackMsg).toLowerCase().includes("abdm-1092")
         ) {
-          // existing duplicate flow: call second API (it will try stored/extracted reqId)
-          this.handleDuplicateByCallingSecondApi(reqObj, fallbackMsg);
+          this.confirmationService.alert(fallbackMsg, "error");
           return;
         }
 
-        // fallback generic
         this.confirmationService.alert(fallbackMsg, "error");
       },
       (err) => {
@@ -486,16 +412,14 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           err?.message ??
           "";
 
-        // Duplicate returned as Http error string
         if (
           String(errMsg).toLowerCase().includes("duplicate") ||
           String(errMsg).toLowerCase().includes("abdm-1092")
         ) {
-          this.handleDuplicateByCallingSecondApi(reqObj, errMsg);
+          this.confirmationService.alert(errMsg, "error");
           return;
         }
 
-        // Aadhaar mismatch as structured error in error body
         if (payloadError && (payloadError?.Code || payloadError?.Message)) {
           const serverMsg =
             payloadError?.Message ??
@@ -521,61 +445,6 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
     );
   }
 
-  /**
-   * When the first API tells us it's a duplicate, resume using the second API (linkCareContext)
-   * with the stored/extracted requestId. If none is found, ask the user/dev to follow up.
-   */
-  private handleDuplicateByCallingSecondApi(
-    originalReqObj: any,
-    rawMsg: string,
-  ) {
-    // 1) try sessionStorage for an earlier requestId
-    const stored = this.readRequestIdFromSession();
-    if (stored) {
-      this.confirmationService.alert(
-        "Duplicate token detected. Resuming using stored RequestId.",
-        "info",
-      );
-      this.resumeViaSecondApi(stored, originalReqObj);
-      return;
-    }
-
-    // 2) try to extract requestId from the raw error string
-    const extracted = this.extractRequestIdFromString(rawMsg);
-    if (extracted) {
-      this.persistRequestIdToSession(extracted);
-      this.confirmationService.alert(
-        "Duplicate token detected. Resuming using extracted RequestId.",
-        "info",
-      );
-      this.resumeViaSecondApi(extracted, originalReqObj);
-      return;
-    }
-
-    // 3) nothing found -> inform user/dev to share original request details
-    this.confirmationService.alert(
-      "Duplicate token request detected but no RequestId found locally. Please contact server with the error details.",
-      "error",
-    );
-    console.warn(
-      "[link] duplicate token but no requestId found. rawMsg:",
-      rawMsg,
-    );
-  }
-
-  /**
-   * Call the second API (linkCareContext) with requestId so backend can look up in Mongo.
-   * Handles possible responses:
-   *  - data.Error -> Aadhaar mismatch (open dialog) or other error
-   *  - data.linkToken -> set token and start polling
-   *  - data.linked / data.careContextId -> success (stop)
-   *  - data.requestId -> persist and inform user
-   *  - fallback -> show friendly message
-   */
-  /**
-   * Resume via second API with polling (5s interval, 3 attempts total).
-   * Handles cases where response may be empty or delayed.
-   */
   private resumeViaSecondApi(requestId: string, originalReqObj: any) {
     const reqObj = {
       requestId,
@@ -589,18 +458,37 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
       beneficiaryId: this.beneficiaryDetails.beneficiaryID,
     };
 
-    this.showProgressBar = true;
-    this.isGenerating = false;
+    this.pollLinkCareContext(reqObj, { resumeRequestId: requestId });
+  }
 
-    let attempts = 0;
+  private pollLinkCareContext(
+    reqObj: any,
+    options?: { isStartup?: boolean; resumeRequestId?: string },
+  ) {
     const maxAttempts = 3;
     const delayMs = 5000;
+
+    if (options?.isStartup) {
+      if (this.isPollingLink) return;
+      if (!this.linkToken) {
+        this.confirmationService.alert(
+          "No link token available to start linking",
+          "error",
+        );
+        return;
+      }
+      this.isPollingLink = true;
+    }
+
+    this.isGenerating = false;
+    this.showProgressBar = true;
 
     if (this.linkPollingSub) {
       this.linkPollingSub.unsubscribe();
       this.linkPollingSub = null;
     }
 
+    let attempts = 0;
     this.linkPollingSub = interval(delayMs)
       .pipe(startWith(0))
       .subscribe(() => {
@@ -611,7 +499,23 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
             const isEmpty = data && Object.keys(data).length === 0;
             const respError = data?.Error ?? data?.error ?? null;
 
-            // Error case (e.g. Aadhaar mismatch)
+            if (
+              data?.message &&
+              String(data.message)
+                .toLowerCase()
+                .includes("care context added successfully")
+            ) {
+              this.stopLinkCareContextPolling();
+              this.showProgressBar = false;
+              this.confirmationService.alert(
+                data?.message ||
+                  this.currentLanguageSet.linkSuccess ||
+                "Care context linked successfully",
+                "success",
+              );
+              this.linkToken = null;
+              return;
+            }
             if (respError) {
               const serverMsg =
                 respError?.Message ?? respError?.message ?? "Linking failed";
@@ -642,59 +546,27 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
               return;
             }
 
-            // Success markers (linked)
-            const linkedFlag =
-              data?.statusCode === 200 && data?.status === "Success";
-
-            if (linkedFlag) {
-              this.stopLinkCareContextPolling();
-              this.showProgressBar = false;
-              this.confirmationService.alert(
-                this.currentLanguageSet.linkSuccess ||
-                  "Care context linked successfully",
-                "success",
-              );
-              this.linkToken = null;
-              return;
-            }
-
-            // If linkToken returned → start normal polling
-            if (data?.linkToken) {
-              this.persistRequestIdToSession(data?.requestId ?? requestId);
-              this.linkToken = data.linkToken;
-              this.stopLinkCareContextPolling();
-              this.showProgressBar = false;
-              this.confirmationService.alert(
-                this.currentLanguageSet.pleaseWaitWhileLinkingCareContext ||
-                  "Please wait while linking care context",
-                "info",
-              );
-              this.startLinkCareContextPolling();
-              return;
-            }
-
-            // If still empty → continue retrying until attempts done
             if (isEmpty) {
               console.debug(
-                `[link] resumeViaSecondApi: empty response attempt ${attempts}/${maxAttempts}`,
+                `[link] pollLinkCareContext: empty response attempt ${attempts}/${maxAttempts}`,
               );
               if (attempts >= maxAttempts) {
                 this.stopLinkCareContextPolling();
                 this.showProgressBar = false;
-                this.confirmationService.alert(
-                  `Still processing. Please try again later with RequestId: ${requestId}`,
-                  "info",
-                );
+                const infoMsg = options?.resumeRequestId
+                  ? `Still processing. Please try again later with RequestId: ${options.resumeRequestId}`
+                  : "Linking is still processing. Please try again later.";
+                this.confirmationService.alert(infoMsg, "info");
               }
               return;
             }
 
-            // fallback
+            // fallback after all retries
             if (attempts >= maxAttempts) {
               this.stopLinkCareContextPolling();
               this.showProgressBar = false;
               this.confirmationService.alert(
-                res?.errorMessage ?? "Failed to resume request",
+                res?.errorMessage ?? "Linking care context failed after maximum retries",
                 "error",
               );
             }
@@ -702,50 +574,19 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           (err) => {
             if (attempts >= maxAttempts) {
               const msg =
-                err?.error?.message ??
-                err?.message ??
-                "Failed after retries (resumeViaSecondApi)";
+                err?.error?.message ?? err?.message ?? "Linking failed after retries";
               this.stopLinkCareContextPolling();
               this.showProgressBar = false;
               this.confirmationService.alert(msg, "error");
             } else {
-              console.warn(
-                "[link] resumeViaSecondApi retrying after error",
-                err,
-              );
+              console.warn("[link] pollLinkCareContext retrying after error", err);
             }
           },
         );
       });
   }
 
-  // ---------- startLinkCareContextPolling() - ORIGINAL style (unchanged) ----------
-  /**
-   * Polls linkCareContext every 5s for up to 3 attempts when linkToken is present.
-   * Stops when linked, error, or Aadhaar mismatch occurs.
-   */
   private startLinkCareContextPolling() {
-    if (this.isPollingLink) return;
-    if (!this.linkToken) {
-      this.confirmationService.alert(
-        "No link token available to start linking",
-        "error",
-      );
-      return;
-    }
-
-    this.isPollingLink = true;
-    this.isGenerating = false;
-    this.showProgressBar = true;
-    let attempts = 0;
-    const maxAttempts = 3;
-    const delayMs = 5000;
-
-    if (this.linkPollingSub) {
-      this.linkPollingSub.unsubscribe();
-      this.linkPollingSub = null;
-    }
-
     const makeReqObj = () => ({
       linkToken: this.linkToken,
       abhaNumber: this.selectedHealthID?.healthIdNumber ?? null,
@@ -758,112 +599,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
       beneficiaryId: this.beneficiaryDetails.beneficiaryID,
     });
 
-    this.linkPollingSub = interval(delayMs)
-      .pipe(startWith(0))
-      .subscribe(() => {
-        attempts++;
-        const reqObj = makeReqObj();
-
-        this.registrarService.linkCareContext(reqObj).subscribe(
-          (res: any) => {
-            const data = res?.data ?? null;
-            const isEmpty = data && Object.keys(data).length === 0;
-            const respError = data?.Error ?? data?.error ?? null;
-
-            if (respError) {
-              const serverMsg =
-                respError?.Message ?? respError?.message ?? "Linking failed";
-              const code = String(respError?.Code ?? "").toLowerCase();
-
-              if (
-                code.includes("1207") ||
-                /aadhar|aadhaar|does not match/i.test(serverMsg)
-              ) {
-                this.stopLinkCareContextPolling();
-                this.showProgressBar = false;
-                this.handleAadhaarMismatchDialog(
-                  {
-                    name: this.beneficiaryDetails.beneficiaryName,
-                    gender: this.beneficiaryDetails.genderName,
-                    yearOfBirth: new Date(
-                      this.beneficiaryDetails.dOB,
-                    ).getFullYear(),
-                  },
-                  serverMsg,
-                );
-                return;
-              }
-
-              this.stopLinkCareContextPolling();
-              this.showProgressBar = false;
-              this.confirmationService.alert(serverMsg, "error");
-              return;
-            }
-
-            const linkedFlag =
-              data?.statusCode === 200 && data?.status === "Success";
-
-            if (linkedFlag) {
-              this.stopLinkCareContextPolling();
-              this.showProgressBar = false;
-              this.confirmationService.alert(
-                this.currentLanguageSet.linkSuccess ||
-                  "Care context linked successfully",
-                "success",
-              );
-              this.linkToken = null;
-              return;
-            }
-
-            // Empty data → retry until maxAttempts
-            if (isEmpty) {
-              console.debug(
-                `[link] startLinkCareContextPolling: empty response attempt ${attempts}/${maxAttempts}`,
-              );
-              if (attempts >= maxAttempts) {
-                this.stopLinkCareContextPolling();
-                this.showProgressBar = false;
-                this.confirmationService.alert(
-                  "Linking is still processing. Please try again later.",
-                  "info",
-                );
-              }
-              return;
-            }
-
-            // linkToken updated mid-poll (rare)
-            if (data?.linkToken && !this.linkToken) {
-              this.linkToken = data.linkToken;
-            }
-
-            // fallback after all retries
-            if (attempts >= maxAttempts) {
-              this.stopLinkCareContextPolling();
-              this.showProgressBar = false;
-              const msg =
-                res?.errorMessage ??
-                "Linking care context failed after maximum retries";
-              this.confirmationService.alert(msg, "error");
-            }
-          },
-          (err) => {
-            if (attempts >= maxAttempts) {
-              const msg =
-                err?.error?.message ??
-                err?.message ??
-                "Linking care context failed after retries";
-              this.stopLinkCareContextPolling();
-              this.showProgressBar = false;
-              this.confirmationService.alert(msg, "error");
-            } else {
-              console.warn(
-                "[link] startLinkCareContextPolling retrying...",
-                err,
-              );
-            }
-          },
-        );
-      });
+    this.pollLinkCareContext(makeReqObj(), { isStartup: true });
   }
 
   private stopLinkCareContextPolling() {
@@ -1032,13 +768,6 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
         // CASE 2: Successful token — start polling
         if (data?.linkToken) {
           this.linkToken = data.linkToken;
-          if (data?.requestId) this.persistRequestIdToSession(data.requestId);
-
-          this.confirmationService.alert(
-            this.currentLanguageSet?.pleaseWaitWhileLinkingCareContext ||
-              "Please wait while linking care context",
-            "info",
-          );
           this.generateResubmitAttempts = 0;
           this.startLinkCareContextPolling();
           return;
@@ -1046,13 +775,6 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
 
         // CASE 3: Success (200) but only requestId, no linkToken
         if (data?.requestId && !data?.linkToken) {
-          this.persistRequestIdToSession(data.requestId);
-          this.confirmationService.alert(
-            "Request received, checking server for existing link...",
-            "info",
-          );
-
-          // immediately call the second API (resume logic)
           this.resumeViaSecondApi(data.requestId, reqObj);
           return;
         }
@@ -1065,7 +787,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           String(fallbackMsg).toLowerCase().includes("duplicate") ||
           String(fallbackMsg).toLowerCase().includes("abdm-1092")
         ) {
-          this.handleDuplicateByCallingSecondApi(reqObj, fallbackMsg);
+          // Flow 4 fallback: show error to user (no resume via duplicate)
+          this.confirmationService.alert(fallbackMsg, "error");
           return;
         }
 
@@ -1093,7 +816,8 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
           String(errMsg).toLowerCase().includes("duplicate") ||
           String(errMsg).toLowerCase().includes("abdm-1092")
         ) {
-          this.handleDuplicateByCallingSecondApi(reqObj, errMsg);
+          // Flow 4: fallback to showing error instead of resuming
+          this.confirmationService.alert(errMsg, "error");
         } else {
           this.confirmationService.alert(errMsg, "error");
         }
