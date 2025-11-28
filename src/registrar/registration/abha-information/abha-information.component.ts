@@ -49,10 +49,12 @@ export class AbhaInformationComponent {
         (response: any) => {
           console.log('responseABHACompoenet', response);
           if (response) {
+            this.abhaInfoFormGroup.patchValue({ healthId: response.healthId });
             this.abhaInfoFormGroup.patchValue({
               healthIdNumber: response.healthIdNumber,
             });
             this.abhaInfoFormGroup.controls['healthIdNumber'].disable();
+            console.log('abha info group', this.abhaInfoFormGroup.value);
           }
         },
       );
@@ -61,6 +63,10 @@ export class AbhaInformationComponent {
   ngOnInit() {
     console.log("INSIDE ABHA COMPOENENT")
     this.fetchLanguageResponse();
+    // Ensure `healthId` control exists on the passed-in form group
+    if (this.abhaInfoFormGroup && !this.abhaInfoFormGroup.get('healthId')) {
+      this.abhaInfoFormGroup.addControl('healthId', new FormControl('', [Validators.required]));
+    }
     this.formData.forEach((item: any) => {
       if (item.fieldName && item.allowText) {
         this.abhaInfoFormGroup.addControl(
@@ -85,7 +91,8 @@ export class AbhaInformationComponent {
     });
     console.log("formDataABHA", this.formData);
     if (this.patientRevisit) {
-      this.abhaInfoFormGroup.controls['healthIdNumber'].patchValue(this.revisitData?.abhaDetails[0]?.healthIDNumber);
+      this.abhaInfoFormGroup.controls['healthIdNumber'].patchValue(this.revisitData?.abhaDetails[0]?.healthIdNumber || '');
+      this.abhaInfoFormGroup.controls['healthId']?.patchValue(this.revisitData?.abhaDetails[0]?.healthId || '');
       console.log('other Form Data', this.formData);
     }
   }
@@ -191,8 +198,11 @@ export class AbhaInformationComponent {
               this.abhaInfoFormGroup.controls['healthId'].patchValue(null);
               this.abhaInfoFormGroup.controls['healthIdMode'].patchValue(null);
             } else {
-              this.abhaInfoFormGroup.patchValue({ healthId: result.healthIdNumber });
-              this.abhaInfoFormGroup.patchValue({ healthIdMode: result.healthIdMode });
+              this.abhaInfoFormGroup.patchValue({
+                healthId: result?.healthId || result?.healthIdNumber || '',
+                healthIdNumber: result?.healthIdNumber || ''
+              });
+              this.abhaInfoFormGroup.patchValue({ healthIdMode: result?.healthIdMode || '' });
               this.abhaInfoFormGroup.controls['healthIdNumber'].disable();
               this.abhaInfoFormGroup.markAsDirty();
               this.registrarService.changePersonalDetailsData(result);
