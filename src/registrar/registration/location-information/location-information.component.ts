@@ -10,6 +10,8 @@ import {
 import { RegistrarService } from '../../services/registrar.service';
 import { Subscription } from 'rxjs';
 import { SessionStorageService } from '../../services/session-storage.service';
+import { AmritTrackingService } from 'Common-UI/src/tracking'
+import { Injector } from '@angular/core';
 
 @Component({
   selector: 'app-location-information',
@@ -44,19 +46,22 @@ export class LocationInformationComponent {
   patchAbhaLocationDetails = false;
   patchAbhaBenLocationDetails: any;
   registrationSubscription!: Subscription;
+  filteredOptions: { [key: string]: string[] } = {};
 
   constructor(
     private fb: FormBuilder,
     private registrarService: RegistrarService,
     private sessionstorage:SessionStorageService,
+    private injector: Injector
+
   ) {
-      this.registrationSubscription = this.registrarService.abhaLocationDetails$.subscribe((result: any) => {
-        if(result){
-          this.patchAbhaLocationDetails = true;
-          this.patchAbhaBenLocationDetails = result;
-          this.loadLocalMasterForDemographic();
-        }
-      });
+    this.registrationSubscription = this.registrarService.abhaLocationDetails$.subscribe((result: any) => {
+      if (result) {
+        this.patchAbhaLocationDetails = true;
+        this.patchAbhaBenLocationDetails = result;
+        this.loadLocalMasterForDemographic();
+      }
+    });
   }
 
   ngOnInit() {
@@ -75,7 +80,12 @@ export class LocationInformationComponent {
           item.fieldName,
           new FormControl(null),
         );
+        // Initialize filtered list with all options
+        if (item.options) {
+          this.filteredOptions[item.fieldName] = [...item.options];
+        }
       }
+
     });
     this.locationInfoFormGroup.addControl('stateID', new FormControl());
     this.locationInfoFormGroup.addControl('districtID', new FormControl());
@@ -100,6 +110,16 @@ export class LocationInformationComponent {
     console.log('location Form Data', this.formData);
   }
 
+  showAllOptions(item: any) {
+    item.filteredOptions = [...item.options];
+  }
+
+  filterOptions(item: any) {
+    const inputValue = this.locationInfoFormGroup.get(item.fieldName)?.value?.toLowerCase() || '';
+    item.filteredOptions = item.options.filter((opt: string) =>
+      opt.toLowerCase().includes(inputValue)
+    );
+  }
   loadLocationFromStorage() {
     const locationData: any = this.sessionstorage.getItem('location');
     const location = JSON.parse(locationData);
@@ -173,6 +193,7 @@ export class LocationInformationComponent {
   }
 
   onChangeLocation(fieldNamevalue: any, selectedValue: any) {
+
     if (fieldNamevalue === 'stateName') {
       const stateDetails = this.statesList.find((value: any) => {
         return value.stateName === selectedValue;
@@ -210,6 +231,7 @@ export class LocationInformationComponent {
       const villageDetails = this.villageList.find((value: any) => {
         return value.villageName === selectedValue;
       });
+
       this.locationInfoFormGroup.patchValue({
         districtBranchID: villageDetails?.districtBranchID,
         districtBranchName: villageDetails?.villageName,
@@ -265,15 +287,15 @@ export class LocationInformationComponent {
         stateID: this.locationPatchDetails.stateID,
         stateName: this.locationPatchDetails.stateName,
       });
-    } else if(this.patchAbhaLocationDetails){
+    } else if (this.patchAbhaLocationDetails) {
       let localStateId;
       let localStateName;
       this.statesList.find((item: any) => {
-        if(item.govtLGDStateID === parseInt(this.patchAbhaBenLocationDetails.stateID)){
+        if (item.govtLGDStateID === parseInt(this.patchAbhaBenLocationDetails.stateID)) {
           localStateId = item.stateID;
           localStateName = item.stateName;
-        } 
-    });
+        }
+      });
       this.locationInfoFormGroup.patchValue({
         stateID: localStateId,
         stateName: localStateName,
@@ -309,15 +331,15 @@ export class LocationInformationComponent {
                 districtID: this.locationPatchDetails.districtID,
                 districtName: this.locationPatchDetails.districtName,
               });
-            } else if(this.patchAbhaLocationDetails){
+            } else if (this.patchAbhaLocationDetails) {
               let localDistrictId;
               let localDistrictName;
               this.districtList.find((item: any) => {
-                if(item.govtLGDDistrictID === parseInt(this.patchAbhaBenLocationDetails.districtID)){
+                if (item.govtLGDDistrictID === parseInt(this.patchAbhaBenLocationDetails.districtID)) {
                   localDistrictId = item.districtID;
                   localDistrictName = item.districtName;
-                } 
-            });
+                }
+              });
               this.locationInfoFormGroup.patchValue({
                 districtID: localDistrictId,
                 districtName: localDistrictName,
@@ -493,9 +515,14 @@ export class LocationInformationComponent {
     }
   }
 
-  ngOnDestroy(){
-    if(this.registrationSubscription){
+  ngOnDestroy() {
+    if (this.registrationSubscription) {
       this.registrationSubscription.unsubscribe();
     }
+  }
+
+  trackFieldInteraction(fieldName: string) {
+    const trackingService = this.injector.get(AmritTrackingService);
+    trackingService.trackFieldInteraction(fieldName, 'Location');
   }
 }

@@ -5,7 +5,7 @@
   class="full-width-login pull-right m-r-5 mat_blue"
   id="viewHealthID"
   type="accent"
-  (click)="viewHealthIdData()"
+  (click)="viewHealthIdData(); trackFieldInteraction('ABHA Details')"
 >
   ABHA Details
 </button>
@@ -16,7 +16,7 @@
   mat-raised-button
   color="primary"
   class="full-width-login pull-right m-r-5 mat_blue"
-  (click)="printHealthIDCard()"
+  (click)="printHealthIDCard(); trackFieldInteraction('Search ABHA')"
 > Search ABHA
 </button>
 <button
@@ -25,7 +25,7 @@
   mat-raised-button
   color="primary"
   class="full-width-login pull-right m-r-5 mat_blue"
-  (click)="generateAbhaCard()"
+  (click)="generateAbhaCard(); trackFieldInteraction('Generate ABHA')"
 >
   Generate ABHA Card
 </button>
@@ -44,6 +44,7 @@
           placeholder="{{ item.placeholder }}"
           [required]="item.isRequired || false"
           formControlName="{{ item.fieldName }}"
+          (focus)="trackFieldInteraction('ABHA Number')"
         />
       </mat-form-field>
     </div>

@@ -26,6 +26,9 @@ import {
   MAT_MOMENT_DATE_ADAPTER_OPTIONS,
 } from '@angular/material-moment-adapter';
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
+import { AmritTrackingService } from 'Common-UI/src/tracking';
+import { Injector } from '@angular/core';
+
 
 @Component({
   selector: 'app-personal-information',
@@ -88,7 +91,8 @@ export class PersonalInformationComponent {
     private beneficiaryDetailsService: BeneficiaryDetailsService,
     private confirmationService: ConfirmationService,
     private languageComponent: SetLanguageComponent,
-    private httpServiceService: HttpServiceService
+    private httpServiceService: HttpServiceService,
+    private injector: Injector
   ) {
     this.personalInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -110,7 +114,7 @@ export class PersonalInformationComponent {
         }
       );
   }
-
+  
   ngOnInit() {
     this.fetchLanguageResponse();
     this.formData.forEach((item: any) => {
@@ -326,22 +330,7 @@ export class PersonalInformationComponent {
     }
   }
 
-  changeLiteracyStatus() {
-    const literacyStatus = this.personalInfoFormGroup.value.literacyStatus;
-
-    if (literacyStatus !== 'Literate') {
-      console.log(this.personalInfoFormGroup.controls, 'controls');
-      // this.personalInfoFormGroup.controls['educationQualification'].clearValidators();
-      console.log(
-        this.personalInfoFormGroup.controls['educationQualification'],
-        'controls'
-      );
-    } else {
-      this.personalInfoFormGroup.controls['educationQualification'].reset();
-    }
-  }
-
-  /**
+ /**
    * Phone Number Parent Relations
    */
   getParentDetails() {
@@ -857,6 +846,11 @@ export class PersonalInformationComponent {
     this.languageComponent.setLanguage();
     this.currentLanguageSet = this.languageComponent.currentLanguageObject;
   }
+
+  trackFieldInteraction(fieldName: string) {
+    const trackingService = this.injector.get(AmritTrackingService);
+    trackingService.trackFieldInteraction(fieldName, 'Personal Information');
+  }
 }
 
 export function maxLengthValidator(maxLength: number): ValidatorFn {
@@ -864,8 +858,6 @@ export function maxLengthValidator(maxLength: number): ValidatorFn {
     const value = control.value;
 
     if (value && value.length > maxLength) {
-      console.log('maxLnegthvalidator', value);
-
       return { maxLengthExceeded: true };
     }
 
