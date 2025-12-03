@@ -194,7 +194,7 @@ export class DownloadSearchAbhaComponent {
         let message = res.data.message;
         this.dialogRef.close();
         this.confirmationValService.alert(message, 'success').afterClosed().subscribe(result => {
-          if(result){
+          if(result !== false){
             this.routeToEnterOtpPage(txnId, loginMethod, loginHint);
           }
         })

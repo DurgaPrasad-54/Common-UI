@@ -77,7 +77,7 @@ export class GenerateAbhaComponentComponent {
           this.dialogRef.close();
           this.confirmationService.alert(res.data.message, "success").afterClosed().subscribe(result => {
             console.log("dialog ref after closed response returning", result)
-            if (result) {
+            if (result !== false) {
               this.routeToOtpPage(txnId);
             }
           })

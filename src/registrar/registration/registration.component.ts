@@ -284,10 +284,11 @@ export class RegistrationComponent {
       this.otherInfoData = item.fields;
       }
       if(item.sectionName.toLowerCase() === "abha information"){
-        if(this.serviceLine === 'HWC' || this.serviceLine === 'TM'){
+        // commented for current purpose will uncomment or remove later 
+        // if(this.serviceLine === 'HWC' || this.serviceLine === 'TM'){
         this.abhaInfoData = item.fields;
         this.enableAbhaInfo = true;
-        }
+        // }
       }
     });
     }
