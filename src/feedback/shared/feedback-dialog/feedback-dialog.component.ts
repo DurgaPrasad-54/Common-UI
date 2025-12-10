@@ -21,6 +21,7 @@
  */
 import { Component, Input, OnInit } from "@angular/core";
 import { FormBuilder, Validators } from "@angular/forms";
+import { Router } from "@angular/router";
 import {
   FeedbackService,
   ServiceLine,
@@ -66,7 +67,8 @@ export class FeedbackDialogComponent implements OnInit {
     private fb: FormBuilder,
     private api: FeedbackService,
     private sessionStorage: SessionStorageService,
-    public httpService: HttpServiceService
+    public httpService: HttpServiceService,
+    public router: Router,
   ) {}
 
   ngOnInit() {
@@ -123,6 +125,10 @@ export class FeedbackDialogComponent implements OnInit {
   formInvalidForNow(): boolean {
     // require rating >=1 and category selected
     return this.form.invalid;
+  }
+
+  login() {
+    this.router.navigate(["/login"]);
   }
 
   submit() {
