@@ -29,6 +29,7 @@ import {
 import { finalize } from "rxjs/operators";
 import { SessionStorageService } from "Common-UI/src/registrar/services/session-storage.service";
 import { SetLanguageService } from "src/app/app-modules/services/set-language/set-language.service";
+import { Router } from "@angular/router";
 
 @Component({
   selector: "app-feedback-dialog",
@@ -65,6 +66,7 @@ export class FeedbackDialogComponent implements OnInit {
     private fb: FormBuilder,
     private api: FeedbackService,
     private sessionStorage: SessionStorageService,
+    public router: Router,
     @Inject(SetLanguageService) private setLanguageService: SetLanguageService,
   ) {}
 
@@ -124,6 +126,10 @@ export class FeedbackDialogComponent implements OnInit {
   formInvalidForNow(): boolean {
     // require rating >=1 and category selected
     return this.form.invalid;
+  }
+
+  login() {
+    this.router.navigate(["/login"]);
   }
 
   submit() {
