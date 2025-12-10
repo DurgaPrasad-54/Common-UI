@@ -107,8 +107,11 @@
     </div>
 
     <div class="fb-actions">
+      <button class="fb-btn fb-btn-cls" (click)="login()">
+        {{ current_language_set?.common?.close ?? "close" }}
+      </button>
       <button
-        class="fb-btn"
+        class="fb-btn fb-btn-ok"
         [disabled]="submitting || formInvalidForNow()"
         (click)="submit()"
       >
