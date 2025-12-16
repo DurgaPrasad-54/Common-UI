@@ -7,15 +7,16 @@
           *ngIf="item?.fieldType?.toLowerCase() === 'text'"
         >
           <mat-form-field class="input-full-width">
-            <mat-label> {{ item.fieldTitle }}</mat-label>
+            <mat-label> {{ item.fieldTitle | titlecase }}</mat-label>
             <input
               matInput
               type="input"
               (input)="onInputChanged($event, item.allowMax, item.fieldName)"
               (focus)="trackFieldInteraction(item.fieldTitle)"
-              placeholder="{{ item.placeholder }}"
+              placeholder="{{ item.placeholder | titlecase }}"
               [required]="item.isRequired || false"
-              formControlName="{{ item.fieldName }}" />
+              formControlName="{{ item.fieldName }}"
+            />
           </mat-form-field>
           <mat-error
             *ngIf="
@@ -56,7 +57,7 @@
               matInput
               [matDatepicker]="picker"
               formControlName="{{ item.fieldName }}"
-              placeholder="{{ item.placeholder }}"
+              placeholder="{{ item.placeholder | titlecase }}"
               [required]="item.isRequired || false"
               readonly
             />
@@ -75,16 +76,16 @@
           <mat-form-field
             class="input-full-width backgroundWhite dropdownfontStyle"
           >
-            <mat-label> {{ item.fieldTitle }}</mat-label>
+            <mat-label> {{ item.fieldTitle | titlecase }}</mat-label>
             <mat-select
               matInput
               multiple
               [required]="item.isRequired || false"
-              placeholder="{{ item.placeholder }}"
+              placeholder="{{ item.placeholder | titlecase }}"
               formControlName="{{ item.fieldName }}"
             >
               <mat-option *ngFor="let option of item.options" [value]="option">
-                {{ option }}
+                {{ option | titlecase }}
               </mat-option>
             </mat-select>
           </mat-form-field>
@@ -110,18 +111,22 @@
               *ngFor="let option of item.options"
               [value]="option"
             >
-              {{ option }}
+              {{ option | titlecase }}
             </mat-radio-button>
           </mat-radio-group>
         </div>
 
-        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4" *ngIf="item?.fieldType?.toLowerCase() === 'dropdown'">
-        
-          <mat-form-field class="input-full-width backgroundWhite fieldForHRP dropdownfontStyle">
-            <mat-label>{{ item.fieldTitle }}</mat-label>
+        <div
+          class="col-xs-12 col-sm-6 col-md-4 col-lg-4"
+          *ngIf="item?.fieldType?.toLowerCase() === 'dropdown'"
+        >
+          <mat-form-field
+            class="input-full-width backgroundWhite fieldForHRP dropdownfontStyle"
+          >
+            <mat-label>{{ item.fieldTitle | titlecase }}</mat-label>
 
             <input
-               matInput
+              matInput
               [placeholder]="item.placeholder"
               [required]="item.isRequired || false"
               [formControlName]="item.fieldName"
@@ -130,16 +135,22 @@
               (focus)="showAllOptions(item)"
             />
 
-            <mat-autocomplete #auto="matAutocomplete" 
-              (optionSelected)="onChangeLocation(item.fieldName, $event.option.value)">
-              <mat-option *ngFor="let option of item.filteredOptions" [value]="option">
-
-                {{ option }}
+            <mat-autocomplete
+              #auto="matAutocomplete"
+              (optionSelected)="
+                onChangeLocation(item.fieldName, $event.option.value)
+              "
+            >
+              <mat-option
+                *ngFor="let option of item.filteredOptions"
+                [value]="option"
+              >
+                {{ option | titlecase }}
               </mat-option>
             </mat-autocomplete>
           </mat-form-field>
         </div>
-       </ng-container>
+      </ng-container>
     </div>
   </form>
 </div>

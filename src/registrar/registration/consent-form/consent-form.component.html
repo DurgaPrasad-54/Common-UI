@@ -19,9 +19,7 @@
     </section>
     <section>
       <p class="textFormat">
-        To provide you with better service, we would,request your personal
-        information. The information that you will providewill be kept
-        confidential and will only be used for research and analysis.
+        {{ currentLanguageSet?.consentFormText }}
       </p>
     </section>
   </mat-dialog-content>
@@ -30,7 +28,7 @@
       class="full-width-login mat_blue"
       type="button"
       (click)="acceptConsent('1')">
-      Accept
+      {{ currentLanguageSet?.tc?.accept }}
     </button>
   </mat-dialog-actions>
 </section>
