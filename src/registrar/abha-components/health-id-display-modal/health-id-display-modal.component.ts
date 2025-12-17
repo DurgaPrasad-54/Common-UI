@@ -514,6 +514,7 @@ export class HealthIdDisplayModalComponent implements OnInit, DoCheck {
                 "success",
               );
               this.linkToken = null;
+              this.closeDialog();
               return;
             }
             if (respError) {
