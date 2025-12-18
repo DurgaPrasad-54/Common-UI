@@ -27,7 +27,7 @@ type="accent"
               <mat-card-content>
                 <app-personal-information [personalInfoFormGroup]="personalInfoFormGroup"
                   [formData]="personalInfoData" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
-                  [currentLanguageSet]="currentLanguageSet"></app-personal-information>
+                ></app-personal-information>
               </mat-card-content>
             </mat-card>
             <div class="row m-t-20">
@@ -50,7 +50,7 @@ type="accent"
               </mat-card-title>
               <mat-card-content>
                 <app-location-information [locationInfoFormGroup]="locationInfoFormGroup" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
-                  [formData]="locationInfoData" [currentLanguageSet]="currentLanguageSet"></app-location-information>
+                  [formData]="locationInfoData"></app-location-information>
               </mat-card-content>
             </mat-card>
             <div class="row m-t-20">
@@ -75,7 +75,7 @@ type="accent"
               </mat-card-title>
               <mat-card-content>
                 <app-other-information [otherInfoFormGroup]="otherInfoFormGroup" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
-                  [formData]="otherInfoData" [currentLanguageSet]="currentLanguageSet"></app-other-information>
+                  [formData]="otherInfoData"></app-other-information>
               </mat-card-content>
             </mat-card>
             <div class="row m-t-20">
@@ -100,8 +100,7 @@ type="accent"
                 {{currentLanguageSet?.ro?.abhaInfo?.abhaInformation}}
               </mat-card-title>
               <mat-card-content>
-                <app-abha-information [abhaInfoFormGroup]="abhaInfoFormGroup" [formData]="abhaInfoData" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
-                  [currentLanguageSet]="currentLanguageSet"></app-abha-information>
+                <app-abha-information [abhaInfoFormGroup]="abhaInfoFormGroup" [formData]="abhaInfoData" [patientRevisit]="patientRevisit" [revisitData]="revisitData"></app-abha-information>
               </mat-card-content>
             </mat-card>
             <div class="row m-t-20">
