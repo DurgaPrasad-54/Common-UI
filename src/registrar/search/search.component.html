@@ -11,7 +11,7 @@
             id="searchbox"
             pattern="[a-zA-Z0-9]*"
             maxlength="32"
-            placeholder="{{ currentLanguageSet?.ro?.benIDOrPhNo }}"
+            placeholder="{{ isEnableES ? currentLanguageSet?.ro?.benIDOrPhNo : currentLanguageSet?.ro?.benIDOrPhNo }}"
             class="pull-left search_textbox"
             [(ngModel)]="quicksearchTerm"
             (ngModelChange)="onSearchInputChange($event)"
