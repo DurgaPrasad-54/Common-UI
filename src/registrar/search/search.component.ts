@@ -135,7 +135,6 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         debounceTime(500), // 500ms delay after typing stops
         distinctUntilChanged(), // Only emit if value changed
         switchMap((searchTerm: string) => {
-          console.log('switchMap called with:', searchTerm); // Debug log
           // Validate alphanumeric
           const alphanumericPattern = /^[a-zA-Z0-9]*$/;
           if (!alphanumericPattern.test(searchTerm)) {
@@ -145,18 +144,14 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
             );
             return [];
           }
-          console.log('Calling API with:', { search: searchTerm }); // Debug log
-          // Call new ES API
           return this.registrarService.identityQuickSearchES({ search: searchTerm });
         })
       )
       .subscribe(
         (response: any) => {
-          console.log('API Response:', response); // Debug log
           this.handleESSearchResponse(response);
         },
         (error: any) => {
-          console.error('API Error:', error); // Debug log
           this.confirmationService.alert(error, 'error');
         }
       );
@@ -164,22 +159,16 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
 
   // Method to handle input changes with debounce (for typing)
   onSearchInputChange(searchTerm: string) {
-    console.log('common UI onSearchInputChange called with:', searchTerm); // Debug log
     const trimmed = searchTerm?.trim() || '';
-    console.log('Trimmed length:', trimmed.length); // Debug log
     if (trimmed.length >= 3) {
-      console.log('Emitting to searchSubject$'); // Debug log
       this.searchSubject$.next(trimmed);
     } else if (trimmed.length === 0) {
       this.resetWorklist();
     }
   }
 
-  // Method for search button click (immediate search, no debounce)
   onSearchButtonClick(searchTerm: any) {
     if (this.isEnableES) {
-      // ES Flow: Immediate search with alphanumeric validation
-      console.log('ES: Button click with:', searchTerm);
       if (!searchTerm || searchTerm.trim().length < 3) {
         this.confirmationService.alert(
           'Please enter at least 3 characters',
@@ -199,21 +188,16 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         return;
       }
 
-      console.log('ES: Calling API directly with:', { search: trimmed });
       this.registrarService.identityQuickSearchES({ search: trimmed })
         .subscribe(
           (response: any) => {
-            console.log('ES: Button API Response:', response);
             this.handleESSearchResponse(response);
           },
           (error: any) => {
-            console.error('ES: Button API Error:', error);
             this.confirmationService.alert(error, 'error');
           }
         );
     } else {
-      // Old Flow: Use existing identityQuickSearch method
-      console.log('Old API: Button click with:', searchTerm);
       this.identityQuickSearch(searchTerm);
     }
   }
@@ -232,7 +216,6 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
       this.filteredBeneficiaryList = this.beneficiaryList;
       this.dataSource.data = this.beneficiaryList;
       this.dataSource.paginator = this.paginator;
-      console.log('Updated dataSource:', this.dataSource.data); // Debug log
       this.changeDetectorRef.detectChanges();
     }
   }
@@ -270,10 +253,8 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
     this.pagedList = [];
   }
 
-  // Keep old method for backward compatibility (used in advanced search, etc.)
   identityQuickSearch(searchTerm: any) {
-    console.log("Entered old search");
-    
+   
     const searchObject = {
       beneficiaryRegID: null,
       beneficiaryID: null,
