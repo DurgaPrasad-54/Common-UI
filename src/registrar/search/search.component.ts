@@ -27,6 +27,7 @@ import {
   ViewChild,
   DoCheck,
   AfterViewChecked,
+  OnDestroy,
 } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { SearchDialogComponent } from '../search-dialog/search-dialog.component';
@@ -45,6 +46,8 @@ import * as moment from 'moment';
 import { environment } from 'src/environments/environment';
 import { SessionStorageService } from '../services/session-storage.service';
 import { HealthIdDisplayModalComponent } from '../abha-components/health-id-display-modal/health-id-display-modal.component';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 export interface Consent {
   consentGranted: string;
@@ -55,7 +58,7 @@ export interface Consent {
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.css'],
 })
-export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
+export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDestroy {
   rowsPerPage = 5;
   activePage = 1;
   pagedList = [];
@@ -69,6 +72,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   currentLanguageSet: any;
   searchPattern!: string;
   consentGranted: any;
+  isEnableES: boolean = false;
   displayedColumns: string[] = [
     'edit',
     'beneficiaryID',
@@ -86,6 +90,10 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   dataSource = new MatTableDataSource<any>();
   searchCategory: any;
 
+  // Add these for debounced search
+  private searchSubject$ = new Subject<string>();
+  private searchSubscription: any;
+
   constructor(
     private changeDetectorRef: ChangeDetectorRef,
     private dialog: MatDialog,
@@ -94,20 +102,178 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
     private registrarService: RegistrarService,
     private cameraService: CameraService,
     private router: Router,
-    private sessionstorage:SessionStorageService,
+    private sessionstorage: SessionStorageService,
     private beneficiaryDetailsService: BeneficiaryDetailsService,
   ) {}
 
   ngOnInit() {
     this.fetchLanguageResponse();
-    this.searchPattern = '/^[a-zA-Z0-9](.|@|-)*$/;';
+    this.isEnableES = environment.isEnableES || false;
+    console.log("IsEnable:", this.isEnableES);
+    
+
+    this.searchPattern = this.isEnableES ? '/^[a-zA-Z0-9]*$/;' : '/^[a-zA-Z0-9](.|@|-)*$/;';
+    if (this.isEnableES) {
+      this.setupDebouncedSearch();
+    }
   }
 
   ngAfterViewChecked() {
     this.changeDetectorRef.detectChanges();
   }
 
+  ngOnDestroy() {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+  }
+
+  // Setup debounced search for typing
+  setupDebouncedSearch() {
+    this.searchSubscription = this.searchSubject$
+      .pipe(
+        debounceTime(500), // 500ms delay after typing stops
+        distinctUntilChanged(), // Only emit if value changed
+        switchMap((searchTerm: string) => {
+          console.log('switchMap called with:', searchTerm); // Debug log
+          // Validate alphanumeric
+          const alphanumericPattern = /^[a-zA-Z0-9]*$/;
+          if (!alphanumericPattern.test(searchTerm)) {
+            this.confirmationService.alert(
+              'Please enter valid alphanumeric input',
+              'info'
+            );
+            return [];
+          }
+          console.log('Calling API with:', { search: searchTerm }); // Debug log
+          // Call new ES API
+          return this.registrarService.identityQuickSearchES({ search: searchTerm });
+        })
+      )
+      .subscribe(
+        (response: any) => {
+          console.log('API Response:', response); // Debug log
+          this.handleESSearchResponse(response);
+        },
+        (error: any) => {
+          console.error('API Error:', error); // Debug log
+          this.confirmationService.alert(error, 'error');
+        }
+      );
+  }
+
+  // Method to handle input changes with debounce (for typing)
+  onSearchInputChange(searchTerm: string) {
+    console.log('common UI onSearchInputChange called with:', searchTerm); // Debug log
+    const trimmed = searchTerm?.trim() || '';
+    console.log('Trimmed length:', trimmed.length); // Debug log
+    if (trimmed.length >= 3) {
+      console.log('Emitting to searchSubject$'); // Debug log
+      this.searchSubject$.next(trimmed);
+    } else if (trimmed.length === 0) {
+      this.resetWorklist();
+    }
+  }
+
+  // Method for search button click (immediate search, no debounce)
+  onSearchButtonClick(searchTerm: any) {
+    if (this.isEnableES) {
+      // ES Flow: Immediate search with alphanumeric validation
+      console.log('ES: Button click with:', searchTerm);
+      if (!searchTerm || searchTerm.trim().length < 3) {
+        this.confirmationService.alert(
+          'Please enter at least 3 characters',
+          'info'
+        );
+        this.resetWorklist();
+        return;
+      }
+
+      const trimmed = searchTerm.trim();
+      const alphanumericPattern = /^[a-zA-Z0-9]*$/;
+      if (!alphanumericPattern.test(trimmed)) {
+        this.confirmationService.alert(
+          'Please enter valid alphanumeric input',
+          'info'
+        );
+        return;
+      }
+
+      console.log('ES: Calling API directly with:', { search: trimmed });
+      this.registrarService.identityQuickSearchES({ search: trimmed })
+        .subscribe(
+          (response: any) => {
+            console.log('ES: Button API Response:', response);
+            this.handleESSearchResponse(response);
+          },
+          (error: any) => {
+            console.error('ES: Button API Error:', error);
+            this.confirmationService.alert(error, 'error');
+          }
+        );
+    } else {
+      // Old Flow: Use existing identityQuickSearch method
+      console.log('Old API: Button click with:', searchTerm);
+      this.identityQuickSearch(searchTerm);
+    }
+  }
+
+
+  // Common method to handle ES API response
+  handleESSearchResponse(response: any) {
+    if (!response?.data || response.data.length === 0) {
+      this.resetWorklist();
+      this.confirmationService.alert(
+        this.currentLanguageSet?.alerts?.info?.beneficiarynotfound || 'Beneficiary not found',
+        'info'
+      );
+    } else {
+      this.beneficiaryList = this.searchRestructES(response.data);
+      this.filteredBeneficiaryList = this.beneficiaryList;
+      this.dataSource.data = this.beneficiaryList;
+      this.dataSource.paginator = this.paginator;
+      console.log('Updated dataSource:', this.dataSource.data); // Debug log
+      this.changeDetectorRef.detectChanges();
+    }
+  }
+
+  // Restructure ES API response
+  searchRestructES(benList: any[]) {
+    const requiredBenData: any[] = [];
+    benList.forEach((element: any) => {
+      requiredBenData.push({
+        beneficiaryID: element.beneficiaryID,
+        beneficiaryRegID: element.beneficiaryRegID,
+        benName: `${element.firstName} ${element.lastName || ''}`,
+        genderName: element.m_gender?.genderName || element.genderName || 'Not Available',
+        fatherName: element.fatherName || 'Not Available',
+        districtName: element.i_bendemographics?.districtName || 'Not Available',
+        villageName: element.i_bendemographics?.villageName || 
+                     element.i_bendemographics?.districtBranchName || 'Not Available',
+        phoneNo: element.benPhoneMaps?.[0]?.phoneNo || 'Not Available',
+        age: moment(element.dob || element.dOB).fromNow(true) === 'a few seconds'
+          ? 'Not Available'
+          : moment(element.dob || element.dOB).fromNow(true),
+        registeredOn: moment(element.createdDate).format('DD-MM-YYYY'),
+        benObject: element,
+      });
+    });
+    console.log('Restructured data:', requiredBenData); // Debug log
+    return requiredBenData;
+  }
+
+  // Reset worklist
+  resetWorklist() {
+    this.beneficiaryList = [];
+    this.filteredBeneficiaryList = [];
+    this.dataSource.data = [];
+    this.pagedList = [];
+  }
+
+  // Keep old method for backward compatibility (used in advanced search, etc.)
   identityQuickSearch(searchTerm: any) {
+    console.log("Entered old search");
+    
     const searchObject = {
       beneficiaryRegID: null,
       beneficiaryID: null,
@@ -242,7 +408,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   }
 
   getCorrectPhoneNo(phoneMaps: any[], benObject: any): string {
-    if (!phoneMaps.length) {
+    if (!phoneMaps || !phoneMaps.length) {
       return 'Not Available';
     }
 
@@ -429,6 +595,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
       }
     });
   }
+
   navigateTORegistrar() {
     const link = '/registrar/registration';
     const currentRoute = this.router.routerState.snapshot.url;

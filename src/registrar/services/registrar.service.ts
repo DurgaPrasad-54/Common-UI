@@ -121,6 +121,14 @@ export class RegistrarService {
     return this.http.post(environment.identityQuickSearchUrl, searchTerm);
   }
 
+  identityQuickSearchES(searchTerm: any) {
+  //    const requestBody = {
+  //   search: searchTerm
+  // };
+  console.log("entered elastic search");
+  
+    return this.http.post(environment.elasticSearchUrl, searchTerm);
+  }
   clearBeneficiaryEditDetails() {
     this.beneficiaryEditDetails.next(null);
   }
