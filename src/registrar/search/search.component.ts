@@ -109,8 +109,6 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
   ngOnInit() {
     this.fetchLanguageResponse();
     this.isEnableES = environment.isEnableES || false;
-    console.log("IsEnable:", this.isEnableES);
-    
 
     this.searchPattern = this.isEnableES ? '/^[a-zA-Z0-9]*$/;' : '/^[a-zA-Z0-9](.|@|-)*$/;';
     if (this.isEnableES) {
@@ -230,9 +228,11 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         benName: `${element.firstName} ${element.lastName || ''}`,
         genderName: element.m_gender?.genderName || element.genderName || 'Not Available',
         fatherName: element.fatherName || 'Not Available',
-        districtName: element.i_bendemographics?.districtName || 'Not Available',
-        villageName: element.i_bendemographics?.villageName || 
-                     element.i_bendemographics?.districtBranchName || 'Not Available',
+        districtName: element.i_bendemographics?.m_district?.districtName || 
+                      element.i_bendemographics?.districtName || 'Not Available',
+        villageName: element.i_bendemographics?.m_districtbranchmapping?.villageName || 
+                    element.i_bendemographics?.villageName || 
+                    element.i_bendemographics?.districtBranchName || 'Not Available',
         phoneNo: element.benPhoneMaps?.[0]?.phoneNo || 'Not Available',
         age: moment(element.dob || element.dOB).fromNow(true) === 'a few seconds'
           ? 'Not Available'
@@ -241,7 +241,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         benObject: element,
       });
     });
-    console.log('Restructured data:', requiredBenData); // Debug log
+    console.log('Restructured ES data:', requiredBenData);
     return requiredBenData;
   }
 
@@ -525,18 +525,51 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
   }
 
   openSearchDialog() {
-    const mdDialogRef: MatDialogRef<SearchDialogComponent> = this.dialog.open(
-      SearchDialogComponent,
-      {
-        width: '60%',
-        disableClose: false,
-      },
-    );
+  const mdDialogRef: MatDialogRef<SearchDialogComponent> = this.dialog.open(
+    SearchDialogComponent,
+    {
+      width: '60%',
+      disableClose: false,
+    },
+  );
 
-    mdDialogRef.afterClosed().subscribe((result) => {
+  mdDialogRef.afterClosed().subscribe((result) => {
+    if (result) {
+      this.advanceSearchTerm = result;
       
-      if (result) {
-        this.advanceSearchTerm = result;
+      // Use ES-based advanced search if Elasticsearch is enabled
+      if (this.isEnableES) {
+        this.registrarService
+          .advanceSearchIdentityES(this.advanceSearchTerm)
+          .subscribe(
+            (response: any) => {
+              if (!response?.data || response.data.length === 0) {
+                this.resetWorklist();
+                this.quicksearchTerm = null;
+                this.confirmationService.alert(
+                  this.currentLanguageSet.alerts.info.beneficiaryNotFound,
+                  'info',
+                );
+              } else {
+                this.beneficiaryList = this.searchRestructES(response.data);
+                this.filteredBeneficiaryList = this.beneficiaryList;
+                this.dataSource.data = this.beneficiaryList;
+                this.dataSource.paginator = this.paginator;
+                this.dataSource.data.forEach(
+                  (sectionCount: any, index: number) => {
+                    sectionCount.sno = index + 1;
+                  },
+                );
+                this.changeDetectorRef.detectChanges();
+              }
+              console.log('ES Advanced Search Result:', JSON.stringify(response, null, 4));
+            },
+            (error) => {
+              this.confirmationService.alert(error, 'error');
+            },
+          );
+      } else {
+        // Use regular advanced search for non-ES mode
         this.registrarService
           .advanceSearchIdentity(this.advanceSearchTerm)
           .subscribe(
@@ -574,9 +607,9 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
             },
           );
       }
-    });
-  }
-
+    }
+  });
+}
   navigateTORegistrar() {
     const link = '/registrar/registration';
     const currentRoute = this.router.routerState.snapshot.url;

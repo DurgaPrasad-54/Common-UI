@@ -37,6 +37,7 @@ import {
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
 import { RegistrarService } from '../services/registrar.service';
 import { SessionStorageService } from '../services/session-storage.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-beneficiary-details',
@@ -61,6 +62,7 @@ export class BeneficiaryDetailsComponent implements OnInit, DoCheck, OnDestroy {
   firstName: any;
   lastName: any;
   regDate: any;
+  isEnableES: boolean = false;
 
   constructor(
     private router: Router,
@@ -73,6 +75,7 @@ export class BeneficiaryDetailsComponent implements OnInit, DoCheck, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.isEnableES = environment.isEnableES || false;
     this.assignSelectedLanguage();
     this.today = new Date();
     this.getHealthIDDetails();
@@ -134,34 +137,80 @@ export class BeneficiaryDetailsComponent implements OnInit, DoCheck, OnDestroy {
     });
   }
 
-  getBenFamilyDetails() {
+   getBenFamilyDetails() {
     this.route.params.subscribe((param) => {
-      const reqObj = {
-        beneficiaryRegID: null,
-        beneficiaryName: null,
-        beneficiaryID: param['beneficiaryId'],
-        phoneNo: null,
-        HealthID: null,
-        HealthIDNumber: null,
-        familyId: null,
-        identity: null,
-      };
-      this.registrarService
-        .identityQuickSearch(reqObj)
-        .subscribe((res: any) => {
-          if (res && res.data.length === 1) {
-            this.beneficiary = res.data[0];
-            this.benFamilyId = res.data[0].familyId;
-            this.beneficiaryName =
-              this.beneficiary.firstName +
-              (this.beneficiary.lastName !== undefined
-                ? ' ' + this.beneficiary.lastName
-                : '');
-            this.regDate = moment
-              .utc(this.beneficiary.createdDate)
-              .format('DD-MM-YYYY hh:mm A');
-          }
-        });
+      if (this.isEnableES) {
+        // Use Elasticsearch search
+        const searchTerm = param['beneficiaryId'];
+        this.registrarService
+          .identityQuickSearchES({ search: searchTerm })
+          .subscribe(
+            (res: any) => {
+              if (res && res.data && res.data.length === 1) {
+                this.beneficiary = res.data[0];
+                this.benFamilyId = res.data[0].familyID || res.data[0].familyId;
+                this.beneficiaryName =
+                  this.beneficiary.firstName +
+                  (this.beneficiary.lastName !== undefined &&
+                  this.beneficiary.lastName !== null &&
+                  this.beneficiary.lastName !== ''
+                    ? ' ' + this.beneficiary.lastName
+                    : '');
+                this.regDate = moment
+                  .utc(this.beneficiary.createdDate)
+                  .format('DD-MM-YYYY hh:mm A');
+              } else if (res && res.data && res.data.length > 1) {
+                // Multiple results found
+                this.confirmationService.alert(
+                  'Multiple beneficiaries found with this ID. Please use advanced search.',
+                  'info',
+                );
+              } else {
+                this.confirmationService.alert(
+                  this.current_language_set?.alerts?.info?.beneficiarynotfound ||
+                    'Beneficiary not found',
+                  'info',
+                );
+              }
+            },
+            (err: any) => {
+              this.confirmationService.alert(
+                'Error fetching beneficiary details',
+                'error',
+              );
+            },
+          );
+      } else {
+        // Use traditional search
+        const reqObj = {
+          beneficiaryRegID: null,
+          beneficiaryName: null,
+          beneficiaryID: param['beneficiaryId'],
+          phoneNo: null,
+          HealthID: null,
+          HealthIDNumber: null,
+          familyId: null,
+          identity: null,
+        };
+        this.registrarService
+          .identityQuickSearch(reqObj)
+          .subscribe((res: any) => {
+            if (res && res.data.length === 1) {
+              this.beneficiary = res.data[0];
+              this.benFamilyId = res.data[0].familyId;
+              this.beneficiaryName =
+                this.beneficiary.firstName +
+                (this.beneficiary.lastName !== undefined
+                  ? ' ' + this.beneficiary.lastName
+                  : '');
+              this.regDate = moment
+                .utc(this.beneficiary.createdDate)
+                .format('DD-MM-YYYY hh:mm A');
+            }
+          });
+      }
+
+      // Fetch beneficiary image (common for both ES and non-ES)
       const benFlowID: any = param['beneficiaryRegID'];
       this.beneficiaryDetailsService
         .getBeneficiaryImage(benFlowID)

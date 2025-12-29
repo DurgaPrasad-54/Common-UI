@@ -140,6 +140,11 @@ export class RegistrarService {
     return this.http.post(environment.advanceSearchIdentityUrl, searchTerms);
   }
 
+ // New ES Advance Search
+  advanceSearchIdentityES(searchTerms: any) {
+    return this.http.post(environment.advanceElasticSearchUrl, searchTerms);
+  }
+
   loadMasterData(servicePointID: any) {
     const tmpSPID = { spID: servicePointID };
     return this.http.post(environment.registrarMasterDataUrl, tmpSPID);

@@ -156,7 +156,10 @@
               *matHeaderCellDef
               mat-sort-header
             >
-              {{ currentLanguageSet?.bendetails?.beneficiaryID }}
+              {{ isEnableES 
+                  ? currentLanguageSet?.bendetails?.beneficiaryRegID 
+                  : currentLanguageSet?.bendetails?.beneficiaryID 
+              }}
             </th>
             <td
               mat-cell
