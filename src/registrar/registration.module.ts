@@ -38,6 +38,7 @@ import { DisplayAbhaCardComponent } from './abha-components/display-abha-card/di
 import { AbhaVerifySuccessComponentComponent } from './abha-components/abha-verify-success-component/abha-verify-success-component.component';
 import { AbhaEnterMobileOtpComponentComponent } from './abha-components/abha-enter-mobile-otp-component/abha-enter-mobile-otp-component.component';
 import { AbhaConsentFormComponent } from './abha-components/abha-consent-form/abha-consent-form.component';
+import { AadhaarCorrectionDialogComponent } from './abha-components/aadhar-correction-dialog/aadhaar-correction-dialog.component';
 
 @NgModule({
   declarations: [
@@ -66,6 +67,7 @@ import { AbhaConsentFormComponent } from './abha-components/abha-consent-form/ab
     AbhaVerifySuccessComponentComponent,
     AbhaEnterMobileOtpComponentComponent,
     AbhaConsentFormComponent,
+    AadhaarCorrectionDialogComponent,
   ],
   imports: [
     CommonModule,
