@@ -121,6 +121,9 @@ export class RegistrarService {
     return this.http.post(environment.identityQuickSearchUrl, searchTerm);
   }
 
+  identityQuickSearchES(searchTerm: any) {
+     return this.http.post(environment.elasticSearchUrl, searchTerm);
+  }
   clearBeneficiaryEditDetails() {
     this.beneficiaryEditDetails.next(null);
   }
@@ -135,6 +138,11 @@ export class RegistrarService {
 
   advanceSearchIdentity(searchTerms: any) {
     return this.http.post(environment.advanceSearchIdentityUrl, searchTerms);
+  }
+
+ // New ES Advance Search
+  advanceSearchIdentityES(searchTerms: any) {
+    return this.http.post(environment.advanceElasticSearchUrl, searchTerms);
   }
 
   loadMasterData(servicePointID: any) {

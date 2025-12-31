@@ -37,6 +37,7 @@ import {
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
 import { RegistrarService } from '../services/registrar.service';
 import { SessionStorageService } from '../services/session-storage.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-beneficiary-details',
@@ -61,6 +62,7 @@ export class BeneficiaryDetailsComponent implements OnInit, DoCheck, OnDestroy {
   firstName: any;
   lastName: any;
   regDate: any;
+  isEnableES: boolean = false;
 
   constructor(
     private router: Router,
@@ -73,6 +75,7 @@ export class BeneficiaryDetailsComponent implements OnInit, DoCheck, OnDestroy {
   ) {}
 
   ngOnInit() {
+    this.isEnableES = environment.isEnableES || false;
     this.assignSelectedLanguage();
     this.today = new Date();
     this.getHealthIDDetails();
@@ -136,41 +139,97 @@ export class BeneficiaryDetailsComponent implements OnInit, DoCheck, OnDestroy {
 
   getBenFamilyDetails() {
     this.route.params.subscribe((param) => {
-      const reqObj = {
-        beneficiaryRegID: null,
-        beneficiaryName: null,
-        beneficiaryID: param['beneficiaryId'],
-        phoneNo: null,
-        HealthID: null,
-        HealthIDNumber: null,
-        familyId: null,
-        identity: null,
-      };
-      this.registrarService
-        .identityQuickSearch(reqObj)
-        .subscribe((res: any) => {
-          if (res && res.data.length === 1) {
-            this.beneficiary = res.data[0];
-            this.benFamilyId = res.data[0].familyId;
-            this.beneficiaryName =
-              this.beneficiary.firstName +
-              (this.beneficiary.lastName !== undefined
-                ? ' ' + this.beneficiary.lastName
-                : '');
-            this.regDate = moment
-              .utc(this.beneficiary.createdDate)
-              .format('DD-MM-YYYY hh:mm A');
-          }
-        });
-      const benFlowID: any = param['beneficiaryRegID'];
-      this.beneficiaryDetailsService
-        .getBeneficiaryImage(benFlowID)
-        .subscribe((data: any) => {
-          if (data && data.benImage) {
+      const beneficiaryId = param['beneficiaryId'];
+      const benFlowID = param['beneficiaryRegID'];
+
+      // Fetch beneficiary details based on search method
+      const searchObservable = this.isEnableES
+        ? this.searchWithElasticsearch(beneficiaryId)
+        : this.searchTraditional(beneficiaryId);
+
+      searchObservable.subscribe({
+        next: (res: any) => this.handleSearchResponse(res),
+        error: (err: any) => this.handleSearchError(err),
+      });
+
+      // Fetch beneficiary image independently
+      this.fetchBeneficiaryImage(benFlowID);
+    });
+  }
+
+  private searchWithElasticsearch(searchTerm: string) {
+    return this.registrarService.identityQuickSearchES({ search: searchTerm });
+  }
+
+  private searchTraditional(beneficiaryId: string) {
+    const reqObj = {
+      beneficiaryRegID: null,
+      beneficiaryName: null,
+      beneficiaryID: beneficiaryId,
+      phoneNo: null,
+      HealthID: null,
+      HealthIDNumber: null,
+      familyId: null,
+      identity: null,
+    };
+    return this.registrarService.identityQuickSearch(reqObj);
+  }
+
+  private handleSearchResponse(res: any) {
+    if (!res?.data || res.data.length === 0) {
+      this.showAlert(
+        this.current_language_set?.alerts?.info?.beneficiarynotfound ||
+          'Beneficiary not found',
+        'info'
+      );
+      return;
+    }
+
+    if (res.data.length > 1) {
+      this.showAlert(
+        'Multiple beneficiaries found with this ID. Please use advanced search.',
+        'info'
+      );
+      return;
+    }
+
+    // Single result found
+    this.beneficiary = res.data[0];
+    this.benFamilyId = res.data[0].familyID || res.data[0].familyId;
+    this.beneficiaryName = this.formatBeneficiaryName(this.beneficiary);
+    this.regDate = moment
+      .utc(this.beneficiary.createdDate)
+      .format('DD-MM-YYYY hh:mm A');
+  }
+
+  private formatBeneficiaryName(beneficiary: any): string {
+    const { firstName, lastName } = beneficiary;
+    return lastName?.trim() ? `${firstName} ${lastName}` : firstName;
+  }
+
+  private handleSearchError(err: any) {
+    console.error('Error fetching beneficiary details:', err);
+    this.showAlert('Error fetching beneficiary details', 'error');
+  }
+
+  private fetchBeneficiaryImage(benFlowID: string) {
+    this.beneficiaryDetailsService
+      .getBeneficiaryImage(benFlowID)
+      .subscribe({
+        next: (data: any) => {
+          if (data?.benImage) {
             this.beneficiary.benImage = data.benImage;
           }
-        });
-    });
+        },
+        error: (err: any) => {
+          console.error('Error fetching beneficiary image:', err);
+          // Optionally show error to user or handle silently
+        },
+      });
+  }
+
+  private showAlert(message: string, type: string) {
+    this.confirmationService.alert(message, type);
   }
 
   getHealthIDDetails() {

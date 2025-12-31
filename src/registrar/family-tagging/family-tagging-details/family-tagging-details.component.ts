@@ -38,6 +38,8 @@ import { FamilyTaggingService } from '../../services/familytagging.service';
 import { RegistrarService } from '../../services/registrar.service';
 import { SearchFamilyComponent } from '../../search-family/search-family.component';
 import { SessionStorageService } from '../../services/session-storage.service';
+import { environment } from 'src/environments/environment';
+
 
 @Component({
   selector: 'app-family-tagging-details',
@@ -97,6 +99,7 @@ export class FamilyTaggingDetailsComponent
   benStateId: any;
   benDistrictId: any;
   benBlockId: any;
+  isEnableES: boolean = false;
 
   constructor(
     private dialog: MatDialog,
@@ -110,6 +113,8 @@ export class FamilyTaggingDetailsComponent
   ) {}
 
   ngOnInit() {
+
+    this.isEnableES = environment.isEnableES || false;
     this.assignSelectedLanguage();
     this.benFamilyId = this.route.snapshot.paramMap.get('familyId');
     this.benFamilyName = this.route.snapshot.paramMap.get('familyName');
@@ -373,17 +378,43 @@ export class FamilyTaggingDetailsComponent
     });
   }
 
-  getBeneficiaryDetailsAfterFamilyTag() {
-    const benReqObj = {
-      beneficiaryRegID: null,
-      beneficiaryID: this.beneficiaryId,
-      phoneNo: null,
-      HealthID: null,
-      HealthIDNumber: null,
-      familyId: null,
-      identity: null,
-    };
+ getBeneficiaryDetailsAfterFamilyTag() {
+  const benReqObj = {
+    beneficiaryRegID: null,
+    beneficiaryID: this.beneficiaryId,
+    phoneNo: null,
+    HealthID: null,
+    HealthIDNumber: null,
+    familyId: null,
+    identity: null,
+  };
 
+  if (this.isEnableES) {
+    // Use Elasticsearch when enabled
+    const esSearchReqObj = {
+      search: this.beneficiaryId
+    };
+    
+    this.registrarService.identityQuickSearchES(esSearchReqObj).subscribe(
+      (beneficiaryDetails: any) => {
+        if (beneficiaryDetails && beneficiaryDetails.statusCode === 200 && 
+            beneficiaryDetails.data && beneficiaryDetails.data.length === 1) {
+          this.benFamilyId =
+            beneficiaryDetails.data[0].familyID !== undefined &&
+            beneficiaryDetails.data[0].familyID !== null
+              ? beneficiaryDetails.data[0].familyID
+              : null;
+          this.registrarService.getBenFamilyDetails(this.benFamilyId);
+        } else {
+          this.benFamilyId = null;
+        }
+      },
+      (error: string) => {
+        this.confirmationService.alert(error, 'error');
+      }
+    );
+  } else {
+    // Use regular search when Elasticsearch is disabled
     this.registrarService.identityQuickSearch(benReqObj).subscribe(
       (beneficiaryDetails: any) => {
         if (beneficiaryDetails && beneficiaryDetails.data.length === 1) {
@@ -399,7 +430,8 @@ export class FamilyTaggingDetailsComponent
       },
       (error: string) => {
         this.confirmationService.alert(error, 'error');
-      },
+      }
     );
   }
+}
 }

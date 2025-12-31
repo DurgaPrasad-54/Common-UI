@@ -9,12 +9,13 @@
           <input
             autocomplete="off"
             id="searchbox"
-            searchPattern
+            pattern="[a-zA-Z0-9]*"
             maxlength="32"
-            placeholder="{{ currentLanguageSet?.ro?.benIDOrPhNo }}"
+            placeholder="{{ isEnableES ? currentLanguageSet?.ro?.benIDOrPhNo : currentLanguageSet?.ro?.benIDOrPhNo }}"
             class="pull-left search_textbox"
             [(ngModel)]="quicksearchTerm"
-            (keyup.enter)="identityQuickSearch(quicksearchTerm)"
+            (ngModelChange)="onSearchInputChange($event)"
+            (keyup.enter)="onSearchButtonClick(quicksearchTerm)"
           />
         </div>
         <div
@@ -23,7 +24,7 @@
         >
           <button
             class="search_button pull-right"
-            (click)="identityQuickSearch(quicksearchTerm)" 
+            (click)="onSearchButtonClick(quicksearchTerm)" 
             matTooltip="{{ currentLanguageSet?.quickSearch }}"
           >
             <mat-icon class="material-icons search_icon">search</mat-icon>
@@ -155,7 +156,10 @@
               *matHeaderCellDef
               mat-sort-header
             >
-              {{ currentLanguageSet?.bendetails?.beneficiaryID }}
+              {{ isEnableES 
+                  ? currentLanguageSet?.bendetails?.beneficiaryRegID 
+                  : currentLanguageSet?.bendetails?.beneficiaryID 
+              }}
             </th>
             <td
               mat-cell

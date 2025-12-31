@@ -27,6 +27,7 @@ import {
   ViewChild,
   DoCheck,
   AfterViewChecked,
+  OnDestroy,
 } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { SearchDialogComponent } from '../search-dialog/search-dialog.component';
@@ -45,6 +46,8 @@ import * as moment from 'moment';
 import { environment } from 'src/environments/environment';
 import { SessionStorageService } from '../services/session-storage.service';
 import { HealthIdDisplayModalComponent } from '../abha-components/health-id-display-modal/health-id-display-modal.component';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 
 export interface Consent {
   consentGranted: string;
@@ -55,7 +58,7 @@ export interface Consent {
   templateUrl: './search.component.html',
   styleUrls: ['./search.component.css'],
 })
-export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
+export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDestroy {
   rowsPerPage = 5;
   activePage = 1;
   pagedList = [];
@@ -69,6 +72,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   currentLanguageSet: any;
   searchPattern!: string;
   consentGranted: any;
+  isEnableES: boolean = false;
   displayedColumns: string[] = [
     'edit',
     'beneficiaryID',
@@ -86,6 +90,10 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   dataSource = new MatTableDataSource<any>();
   searchCategory: any;
 
+  // Add these for debounced search
+  private searchSubject$ = new Subject<string>();
+  private searchSubscription: any;
+
   constructor(
     private changeDetectorRef: ChangeDetectorRef,
     private dialog: MatDialog,
@@ -94,20 +102,159 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
     private registrarService: RegistrarService,
     private cameraService: CameraService,
     private router: Router,
-    private sessionstorage:SessionStorageService,
+    private sessionstorage: SessionStorageService,
     private beneficiaryDetailsService: BeneficiaryDetailsService,
   ) {}
 
   ngOnInit() {
     this.fetchLanguageResponse();
-    this.searchPattern = '/^[a-zA-Z0-9](.|@|-)*$/;';
+    this.isEnableES = environment.isEnableES || false;
+
+    this.searchPattern = this.isEnableES ? '/^[a-zA-Z0-9]*$/;' : '/^[a-zA-Z0-9](.|@|-)*$/;';
+    if (this.isEnableES) {
+      this.setupDebouncedSearch();
+    }
   }
 
   ngAfterViewChecked() {
     this.changeDetectorRef.detectChanges();
   }
 
+  ngOnDestroy() {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+  }
+
+  // Setup debounced search for typing
+  setupDebouncedSearch() {
+    this.searchSubscription = this.searchSubject$
+      .pipe(
+        debounceTime(500), // 500ms delay after typing stops
+        distinctUntilChanged(), // Only emit if value changed
+        switchMap((searchTerm: string) => {
+          // Validate alphanumeric
+          const alphanumericPattern = /^[a-zA-Z0-9]*$/;
+          if (!alphanumericPattern.test(searchTerm)) {
+            this.confirmationService.alert(
+              'Please enter valid alphanumeric input',
+              'info'
+            );
+            return [];
+          }
+          return this.registrarService.identityQuickSearchES({ search: searchTerm });
+        })
+      )
+      .subscribe(
+        (response: any) => {
+          this.handleESSearchResponse(response);
+        },
+        (error: any) => {
+          this.confirmationService.alert(error, 'error');
+        }
+      );
+  }
+
+  // Method to handle input changes with debounce (for typing)
+  onSearchInputChange(searchTerm: string) {
+    const trimmed = searchTerm?.trim() || '';
+    if (trimmed.length >= 3) {
+      this.searchSubject$.next(trimmed);
+    } else if (trimmed.length === 0) {
+      this.resetWorklist();
+    }
+  }
+
+  onSearchButtonClick(searchTerm: any) {
+    if (this.isEnableES) {
+      if (!searchTerm || searchTerm.trim().length < 3) {
+        this.confirmationService.alert(
+          'Please enter at least 3 characters',
+          'info'
+        );
+        this.resetWorklist();
+        return;
+      }
+
+      const trimmed = searchTerm.trim();
+      const alphanumericPattern = /^[a-zA-Z0-9]*$/;
+      if (!alphanumericPattern.test(trimmed)) {
+        this.confirmationService.alert(
+          'Please enter valid alphanumeric input',
+          'info'
+        );
+        return;
+      }
+
+      this.registrarService.identityQuickSearchES({ search: trimmed })
+        .subscribe(
+          (response: any) => {
+            this.handleESSearchResponse(response);
+          },
+          (error: any) => {
+            this.confirmationService.alert(error, 'error');
+          }
+        );
+    } else {
+      this.identityQuickSearch(searchTerm);
+    }
+  }
+
+
+  // Common method to handle ES API response
+  handleESSearchResponse(response: any) {
+    if (!response?.data || response.data.length === 0) {
+      this.resetWorklist();
+      this.confirmationService.alert(
+        this.currentLanguageSet?.alerts?.info?.beneficiarynotfound || 'Beneficiary not found',
+        'info'
+      );
+    } else {
+      this.beneficiaryList = this.searchRestructES(response.data);
+      this.filteredBeneficiaryList = this.beneficiaryList;
+      this.dataSource.data = this.beneficiaryList;
+      this.dataSource.paginator = this.paginator;
+      this.changeDetectorRef.detectChanges();
+    }
+  }
+
+  // Restructure ES API response
+  searchRestructES(benList: any[]) {
+    const requiredBenData: any[] = [];
+    benList.forEach((element: any) => {
+      requiredBenData.push({
+        beneficiaryID: element.beneficiaryID,
+        beneficiaryRegID: element.beneficiaryRegID,
+        benName: `${element.firstName} ${element.lastName || ''}`,
+        genderName: element.m_gender?.genderName || element.genderName || 'Not Available',
+        fatherName: element.fatherName || 'Not Available',
+        districtName: element.i_bendemographics?.m_district?.districtName || 
+                      element.i_bendemographics?.districtName || 'Not Available',
+        villageName: element.i_bendemographics?.m_districtbranchmapping?.villageName || 
+                    element.i_bendemographics?.villageName || 
+                    element.i_bendemographics?.districtBranchName || 'Not Available',
+        phoneNo: element.benPhoneMaps?.[0]?.phoneNo || 'Not Available',
+        age: moment(element.dob || element.dOB).fromNow(true) === 'a few seconds'
+          ? 'Not Available'
+          : moment(element.dob || element.dOB).fromNow(true),
+        registeredOn: moment(element.createdDate).format('DD-MM-YYYY'),
+        benObject: element,
+      });
+    });
+    console.log('Restructured ES data:', requiredBenData);
+    return requiredBenData;
+  }
+
+  // Reset worklist
+  resetWorklist() {
+    this.beneficiaryList = [];
+    this.filteredBeneficiaryList = [];
+    this.dataSource.data = [];
+    this.pagedList = [];
+  }
+
   identityQuickSearch(searchTerm: any) {
+   
     const searchObject = {
       beneficiaryRegID: null,
       beneficiaryID: null,
@@ -242,7 +389,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   }
 
   getCorrectPhoneNo(phoneMaps: any[], benObject: any): string {
-    if (!phoneMaps.length) {
+    if (!phoneMaps || !phoneMaps.length) {
       return 'Not Available';
     }
 
@@ -378,18 +525,51 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
   }
 
   openSearchDialog() {
-    const mdDialogRef: MatDialogRef<SearchDialogComponent> = this.dialog.open(
-      SearchDialogComponent,
-      {
-        width: '60%',
-        disableClose: false,
-      },
-    );
+  const mdDialogRef: MatDialogRef<SearchDialogComponent> = this.dialog.open(
+    SearchDialogComponent,
+    {
+      width: '60%',
+      disableClose: false,
+    },
+  );
 
-    mdDialogRef.afterClosed().subscribe((result) => {
+  mdDialogRef.afterClosed().subscribe((result) => {
+    if (result) {
+      this.advanceSearchTerm = result;
       
-      if (result) {
-        this.advanceSearchTerm = result;
+      // Use ES-based advanced search if Elasticsearch is enabled
+      if (this.isEnableES) {
+        this.registrarService
+          .advanceSearchIdentityES(this.advanceSearchTerm)
+          .subscribe(
+            (response: any) => {
+              if (!response?.data || response.data.length === 0) {
+                this.resetWorklist();
+                this.quicksearchTerm = null;
+                this.confirmationService.alert(
+                  this.currentLanguageSet.alerts.info.beneficiaryNotFound,
+                  'info',
+                );
+              } else {
+                this.beneficiaryList = this.searchRestructES(response.data);
+                this.filteredBeneficiaryList = this.beneficiaryList;
+                this.dataSource.data = this.beneficiaryList;
+                this.dataSource.paginator = this.paginator;
+                this.dataSource.data.forEach(
+                  (sectionCount: any, index: number) => {
+                    sectionCount.sno = index + 1;
+                  },
+                );
+                this.changeDetectorRef.detectChanges();
+              }
+              console.log('ES Advanced Search Result:', JSON.stringify(response, null, 4));
+            },
+            (error) => {
+              this.confirmationService.alert(error, 'error');
+            },
+          );
+      } else {
+        // Use regular advanced search for non-ES mode
         this.registrarService
           .advanceSearchIdentity(this.advanceSearchTerm)
           .subscribe(
@@ -427,8 +607,9 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked {
             },
           );
       }
-    });
-  }
+    }
+  });
+}
   navigateTORegistrar() {
     const link = '/registrar/registration';
     const currentRoute = this.router.routerState.snapshot.url;

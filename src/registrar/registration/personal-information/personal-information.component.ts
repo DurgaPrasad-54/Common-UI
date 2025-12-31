@@ -28,6 +28,7 @@ import {
 import { HttpServiceService } from 'src/app/app-modules/core/services/http-service.service';
 import { AmritTrackingService } from 'Common-UI/src/tracking';
 import { Injector } from '@angular/core';
+import { environment } from 'src/environments/environment';
 
 
 @Component({
@@ -83,6 +84,7 @@ export class PersonalInformationComponent {
   ageforMarriage = 12;
   maritalStatusMaster: any;
   personalInfoSubscription!: Subscription;
+  isEnableES: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -116,6 +118,7 @@ export class PersonalInformationComponent {
   }
   
   ngOnInit() {
+    this.isEnableES = environment.isEnableES || false;
     this.fetchLanguageResponse();
     this.formData.forEach((item: any) => {
       if (item.fieldName && item.allowText) {
@@ -333,55 +336,96 @@ export class PersonalInformationComponent {
  /**
    * Phone Number Parent Relations
    */
-  getParentDetails() {
+ getParentDetails() {
     const searchTerm = this.personalInfoFormGroup.value.phoneNo;
-    const searchObject = {
-      beneficiaryRegID: null,
-      beneficiaryID: null,
-      phoneNo: null,
-    };
+    
     if (searchTerm && searchTerm.trim().length === 10) {
-      searchObject['phoneNo'] = searchTerm;
-      this.registrarService.identityQuickSearch(searchObject).subscribe(
-        (beneficiaryList: any) => {
-          if (
-            beneficiaryList &&
-            beneficiaryList.length > 0 &&
-            beneficiaryList[0].benPhoneMaps.length > 0
-          ) {
-            console.log(
-              'ta d ad a d a',
-              JSON.stringify(beneficiaryList, null, 4)
-            );
-            this.personalInfoFormGroup.patchValue({
-              parentRegID: beneficiaryList[0].benPhoneMaps[0].parentBenRegID,
-              parentRelation: 11,
-            });
-            console.log(this.personalInfoFormGroup.value.parentRegID);
-          } else {
+      if (this.isEnableES) {
+        // Use Elasticsearch search
+        this.registrarService.identityQuickSearchES({ search: searchTerm }).subscribe(
+          (response: any) => {
+            if (
+              response &&
+              response.data &&
+              response.data.length > 0 &&
+              response.data[0].benPhoneMaps &&
+              response.data[0].benPhoneMaps.length > 0
+            ) {
+              console.log('ES Parent search result:', JSON.stringify(response, null, 4));
+              this.personalInfoFormGroup.patchValue({
+                parentRegID: response.data[0].benPhoneMaps[0].parentBenRegID,
+                parentRelation: 11,
+              });
+              console.log('Parent Reg ID (ES):', this.personalInfoFormGroup.value.parentRegID);
+            } else {
+              this.personalInfoFormGroup.patchValue({
+                parentRegID: null,
+                parentRelation: 1,
+              });
+              console.log('No parent found (ES):', this.personalInfoFormGroup.value.parentRegID);
+
+              if (this.patientRevisit) {
+                this.personalInfoFormGroup.patchValue({
+                  parentRegID: this.personalInfoFormGroup.value.beneficiaryRegID,
+                });
+                console.log('Patient revisit parent (ES):', this.personalInfoFormGroup.value.parentRegID);
+              }
+            }
+          },
+          error => {
+            this.confirmationService.alert(error, 'error');
             this.personalInfoFormGroup.patchValue({
               parentRegID: null,
               parentRelation: 1,
+              phoneNo: null,
             });
-            console.log(this.personalInfoFormGroup.value.parentRegID);
-
-            if (this.patientRevisit) {
-              this.personalInfoFormGroup.patchValue({
-                parentRegID: this.personalInfoFormGroup.value.beneficiaryRegID,
-              });
-              console.log(this.personalInfoFormGroup.value.parentRegID);
-            }
           }
-        },
-        error => {
-          this.confirmationService.alert(error, 'error');
-          this.personalInfoFormGroup.patchValue({
-            parentRegID: null,
-            parentRelation: 1,
-            phoneNo: null,
-          });
-        }
-      );
+        );
+      } else {
+        const searchObject = {
+          beneficiaryRegID: null,
+          beneficiaryID: null,
+          phoneNo: searchTerm,
+        };
+        
+        this.registrarService.identityQuickSearch(searchObject).subscribe(
+          (beneficiaryList: any) => {
+            if (
+              beneficiaryList &&
+              beneficiaryList.length > 0 &&
+              beneficiaryList[0].benPhoneMaps.length > 0
+            ) {
+              console.log('Traditional search result:', JSON.stringify(beneficiaryList, null, 4));
+              this.personalInfoFormGroup.patchValue({
+                parentRegID: beneficiaryList[0].benPhoneMaps[0].parentBenRegID,
+                parentRelation: 11,
+              });
+              console.log('Parent Reg ID:', this.personalInfoFormGroup.value.parentRegID);
+            } else {
+              this.personalInfoFormGroup.patchValue({
+                parentRegID: null,
+                parentRelation: 1,
+              });
+              console.log('No parent found:', this.personalInfoFormGroup.value.parentRegID);
+
+              if (this.patientRevisit) {
+                this.personalInfoFormGroup.patchValue({
+                  parentRegID: this.personalInfoFormGroup.value.beneficiaryRegID,
+                });
+                console.log('Patient revisit parent:', this.personalInfoFormGroup.value.parentRegID);
+              }
+            }
+          },
+          error => {
+            this.confirmationService.alert(error, 'error');
+            this.personalInfoFormGroup.patchValue({
+              parentRegID: null,
+              parentRelation: 1,
+              phoneNo: null,
+            });
+          }
+        );
+      }
     } else {
       if (this.patientRevisit) {
         this.personalInfoFormGroup.patchValue({
@@ -398,7 +442,8 @@ export class PersonalInformationComponent {
       }
     }
   }
-  /**
+
+   /**
    *
    * Age Entered in Input
    */
