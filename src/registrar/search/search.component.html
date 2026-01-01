@@ -156,17 +156,14 @@
               *matHeaderCellDef
               mat-sort-header
             >
-              {{ isEnableES 
-                  ? currentLanguageSet?.bendetails?.beneficiaryRegID 
-                  : currentLanguageSet?.bendetails?.beneficiaryID 
-              }}
+               {{ currentLanguageSet?.bendetails?.beneficiaryID }}
             </th>
             <td
               mat-cell
               *matCellDef="let beneficiary"
               (click)="patientRevisited(beneficiary.benObject)"
             >
-              {{ beneficiary?.beneficiaryID }}
+              {{ isEnableES ? beneficiary?.beneficiaryRegID : beneficiary?.beneficiaryID }}
             </td>
           </ng-container>
 
