@@ -18,15 +18,16 @@ type="accent"
         <mat-horizontal-stepper linear="false" #stepper>
           <mat-step *ngIf="enablePersonalInfo">
             <ng-template matStepLabel>
-              Personal Information
+              {{currentLanguageSet?.ro?.personalInfo?.personalInformation}}
             </ng-template>
             <mat-card>
               <mat-card-title style="padding: 15px">
-                Personal Information
+              {{currentLanguageSet?.ro?.personalInfo?.personalInformation}}
               </mat-card-title>
               <mat-card-content>
                 <app-personal-information [personalInfoFormGroup]="personalInfoFormGroup"
-                  [formData]="personalInfoData" [patientRevisit]="patientRevisit" [revisitData]="revisitData"></app-personal-information>
+                  [formData]="personalInfoData" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
+                ></app-personal-information>
               </mat-card-content>
             </mat-card>
             <div class="row m-t-20">
@@ -41,11 +42,11 @@ type="accent"
           </mat-step>
           <mat-step *ngIf="enableLocationInfo">
             <ng-template matStepLabel>
-              Location Information
+              {{currentLanguageSet?.ro?.locInfo?.locInformation}}
             </ng-template>
             <mat-card>
               <mat-card-title style="padding: 15px">
-                Location Information
+                {{currentLanguageSet?.ro?.locInfo?.locInformation}}
               </mat-card-title>
               <mat-card-content>
                 <app-location-information [locationInfoFormGroup]="locationInfoFormGroup" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
@@ -66,11 +67,11 @@ type="accent"
           </mat-step>
           <mat-step *ngIf="enableOtherInfo">
             <ng-template matStepLabel>
-              Other Information
+              {{currentLanguageSet?.ro?.otherInfo?.otherInformation}}
             </ng-template>
             <mat-card>
               <mat-card-title style="padding: 15px">
-                Other Information
+                {{currentLanguageSet?.ro?.otherInfo?.otherInformation}}
               </mat-card-title>
               <mat-card-content>
                 <app-other-information [otherInfoFormGroup]="otherInfoFormGroup" [patientRevisit]="patientRevisit" [revisitData]="revisitData"
@@ -92,11 +93,11 @@ type="accent"
           </mat-step>
           <mat-step *ngIf="enableAbhaInfo">
             <ng-template matStepLabel>
-              ABHA Information
+              {{currentLanguageSet?.ro?.abhaInfo?.abhaInformation}}
             </ng-template>
             <mat-card>
               <mat-card-title style="padding: 15px">
-                ABHA Information
+                {{currentLanguageSet?.ro?.abhaInfo?.abhaInformation}}
               </mat-card-title>
               <mat-card-content>
                 <app-abha-information [abhaInfoFormGroup]="abhaInfoFormGroup" [formData]="abhaInfoData" [patientRevisit]="patientRevisit" [revisitData]="revisitData"></app-abha-information>

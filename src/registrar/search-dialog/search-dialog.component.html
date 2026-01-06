@@ -135,7 +135,7 @@
           <div class="select-container">
 
             <mat-form-field style="width: 100%">
-              <mat-label>{{ currentLanguageSet?.village }}</mat-label>
+              <mat-label>{{ currentLanguageSet?.ro?.locInfo?.village }}</mat-label>
               <input type="text" matInput [formControl]="villageCtrl" [matAutocomplete]="autoVillage">
               <mat-autocomplete #autoVillage="matAutocomplete" (optionSelected)="onVillageSelected($event.option.value)"
                 [displayWith]="displayVillageFn">
