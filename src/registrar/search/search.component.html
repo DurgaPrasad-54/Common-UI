@@ -11,7 +11,7 @@
             id="searchbox"
             pattern="[a-zA-Z0-9]*"
             maxlength="32"
-            placeholder="{{ isEnableES ? currentLanguageSet?.ro?.benIDOrPhNo : currentLanguageSet?.ro?.benIDOrPhNo }}"
+            placeholder="{{ isEnableES ? currentLanguageSet?.ro?.benDetails : currentLanguageSet?.ro?.benIDOrPhNo }}"
             class="pull-left search_textbox"
             [(ngModel)]="quicksearchTerm"
             (ngModelChange)="onSearchInputChange($event)"
@@ -110,7 +110,7 @@
           <input
             autocomplete="off"
             matInput
-            placeholder="{{ currentLanguageSet?.common?.inTableSearch }}"
+            placeholder="{{isEnableES ? currentLanguageSet?.common?.inTableSearch : currentLanguageSet?.common?.inTableSearch }}"
             #filterTerm
             (keyup)="filterBeneficiaryList(filterTerm.value)"
           />
@@ -163,7 +163,7 @@
               *matCellDef="let beneficiary"
               (click)="patientRevisited(beneficiary.benObject)"
             >
-              {{ isEnableES ? beneficiary?.beneficiaryRegID : beneficiary?.beneficiaryID }}
+              {{ beneficiary?.beneficiaryID }}
             </td>
           </ng-container>
 
