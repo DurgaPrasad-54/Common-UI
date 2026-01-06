@@ -110,7 +110,7 @@
           <input
             autocomplete="off"
             matInput
-            placeholder="{{isEnableES ? currentLanguageSet?.common?.inTableSearch : currentLanguageSet?.common?.inTableSearch }}"
+            placeholder="{{currentLanguageSet?.common?.inTableSearch}}"
             #filterTerm
             (keyup)="filterBeneficiaryList(filterTerm.value)"
           />
