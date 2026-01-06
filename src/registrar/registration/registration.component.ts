@@ -47,7 +47,6 @@ export class RegistrationComponent {
   consentGranted: any;
   disableGenerateOTP = false;
   today = new Date();
-  healthIdNumber: any;
 
 
   constructor(
@@ -339,27 +338,27 @@ export class RegistrationComponent {
           const reqObj = {
             beneficiaryRegID: null,
             beneficiaryID: numb,
-            healthId: this.mainForm.controls['abhaInfoForm'].value['healthId'],
-            healthIdNumber: this.healthIdNumber,
+            healthId: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
+            healthIdNumber: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
             providerServiceMapId: this.sessionstorage.getItem('providerServiceID'),
             authenticationMode: null,
             createdBy: this.sessionstorage.getItem('userName'),
           };
-        if (this.healthIdNumber != null && this.healthIdNumber !== undefined) {
-          this.registrarService.mapHealthId(reqObj).subscribe((res: any) => {
-            console.log('response for benhealthid mapping', res);
-            if (res.statusCode === 200) {
-              // this.confirmationService.alert(res.data.response, 'success');
-              console.log('success');
-            } else {
-              this.confirmationService.alert(
-                this.currentLanguageSet.alerts.info.issueInSavngData,
-                'error',
-              );
-            }
-          });
-        }
-          
+          if 
+            (this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'] !== undefined &&
+            this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'] !== null)  {
+            this.registrarService.mapHealthId(reqObj).subscribe((res: any) => {
+              if (res.statusCode === 200) {
+                // this.confirmationService.alert(res.data.response, 'success');
+                console.log('success');
+              } else {
+                this.confirmationService.alert(
+                  this.currentLanguageSet.alerts.info.issueInSavngData,
+                  'error',
+                );
+              }
+            });
+          }
         this.mainForm.reset();
         this.disableGenerateOTP = false;
         this.router.navigate(['/registrar/search/']);
@@ -435,8 +434,7 @@ export class RegistrationComponent {
         addressLine3: demographicsForm.controls['addressLine3']?.value || null,
         religionName: othersForm.controls['religionName']?.value || null,
       },
-      healthIdNumber: this.healthIdNumber,
-      healthId: abhaForm.controls['healthId']?.value || null,
+      abha: abhaForm.controls['healthIdNumber']?.value || null,
       genderID: (() => {
         const genderName = personalForm.controls['genderName']?.value;
         if (genderName === 'Female') {
@@ -516,8 +514,8 @@ export class RegistrationComponent {
               const reqObj = {
                 beneficiaryRegID: null,
                 beneficiaryID: personalForm.beneficiaryID,
-                healthId: this.mainForm.controls['abhaInfoForm'].value['healthId'],
-                healthIdNumber: this.healthIdNumber,
+                healthId: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
+                healthIdNumber: this.mainForm.controls['abhaInfoForm'].value['healthIdNumber'],
                 authenticationMode: null,
                 providerServiceMapId: this.sessionstorage.getItem('providerServiceID'),
                 createdBy: this.sessionstorage.getItem('userName'),
@@ -616,8 +614,6 @@ export class RegistrationComponent {
         addressLine3: demographicsForm.controls['addressLine3']?.value || null,
         religionName: othersForm.controls['religionName']?.value || null,
       },
-      healthId: abhaForm.controls['healthId']?.value || null,
-      healthIdNumber: this.healthIdNumber,
       abha: abhaForm.controls['healthIdNumber']?.value || null,
       genderID: (() => {
         const genderName = personalForm.controls['genderName']?.value;
@@ -756,10 +752,9 @@ export class RegistrationComponent {
   }
 
   setHealthIdAfterGeneration(result: any) {
-    this.healthIdNumber = result.healthIdNumber;
     (<FormGroup>(
       this.mainForm.controls['otherInfoForm']
-    )).patchValue({ healthId: result?.healthId || '' });
+    )).patchValue({ healthId: result.healthIdNumber });
     (<FormGroup>(
       this.mainForm.controls['otherInfoForm']
     )).patchValue({ healthIdNumber: result.healthIdNumber });
