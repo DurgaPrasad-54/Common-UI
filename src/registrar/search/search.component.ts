@@ -436,7 +436,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
       benObject &&
       benObject.m_gender &&
       benObject.m_gender.genderName &&
-      benObject.dOB
+      benObject.dob
     ) {
       const action = false;
       console.log(JSON.stringify(benObject, null, 4), 'benObject');
@@ -455,7 +455,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         .subscribe((result) => {
           if (result) this.sendToNurseWindow(result, benObject);
         });
-    } else if (!benObject.m_gender.genderName && !benObject.dOB) {
+    } else if (!benObject.m_gender.genderName && !benObject.dob) {
       this.confirmationService.alert(
         this.currentLanguageSet.alerts.info.genderAndAgeDetails,
         'info',
@@ -465,7 +465,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         this.currentLanguageSet.alerts.info.noGenderDetails,
         'info',
       );
-    } else if (!benObject.dOB) {
+    } else if (!benObject.dob) {
       this.confirmationService.alert(
         this.currentLanguageSet.alerts.info.noAgeDetailsAvail,
         'info',
