@@ -134,7 +134,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
         distinctUntilChanged(), // Only emit if value changed
         switchMap((searchTerm: string) => {
           // Validate alphanumeric
-          const alphanumericPattern = /^[a-zA-Z0-9]*$/;
+          const alphanumericPattern = /^[a-zA-Z0-9\s]*$/;
           if (!alphanumericPattern.test(searchTerm)) {
             this.confirmationService.alert(
               'Please enter valid alphanumeric input',
@@ -177,7 +177,7 @@ export class SearchComponent implements OnInit, DoCheck, AfterViewChecked, OnDes
       }
 
       const trimmed = searchTerm.trim();
-      const alphanumericPattern = /^[a-zA-Z0-9]*$/;
+      const alphanumericPattern = /^[a-zA-Z0-9\s]*$/;
       if (!alphanumericPattern.test(trimmed)) {
         this.confirmationService.alert(
           'Please enter valid alphanumeric input',
