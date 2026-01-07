@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Injector, Input } from '@angular/core';
 import { Router } from '@angular/router';
 import { RegistrarService } from '../../services/registrar.service';
 import { MatDialog } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { Subscription } from 'rxjs';
 import { GenerateAbhaComponentComponent } from '../../abha-components/generate-abha-component/generate-abha-component.component';
 import { DownloadSearchAbhaComponent } from '../../abha-components/download-search-abha/download-search-abha.component';
 import { AbhaConsentFormComponent } from '../../abha-components/abha-consent-form/abha-consent-form.component';
+import { AmritTrackingService } from 'Common-UI/src/tracking';
 
 @Component({
   selector: 'app-abha-information',
@@ -42,7 +43,9 @@ export class AbhaInformationComponent {
     private dialog: MatDialog,
     private confirmationService: ConfirmationService,
     private httpServiceService: HttpServiceService,
-    private languageComponent: SetLanguageComponent
+    private languageComponent: SetLanguageComponent,
+    private injector: Injector
+    
   ) {
     this.abhaInfoSubscription =
       this.registrarService.registrationABHADetails$.subscribe(
@@ -225,6 +228,11 @@ export class AbhaInformationComponent {
         });
       }
     });
+  }
+
+  trackFieldInteraction(fieldName: string) {
+    const trackingService = this.injector.get(AmritTrackingService);
+    trackingService.trackFieldInteraction(fieldName, 'Abha Information');
   }
 
 }

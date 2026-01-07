@@ -1,11 +1,8 @@
 <section id="searchDialog" class="container-fluid" style="overflow: hidden;">
   <div class="title info background_color">
     <h4>{{ currentLanguageSet?.common?.advanceBeneficiarySearch }}</h4>
-    <button
-      class="pull-right close-btn"
-      style="border: unset;background-color: unset;color: white;"
-      (click)="matDialogRef.close(false)"
-      mat-icon-button>
+    <button class="pull-right close-btn" style="border: unset;background-color: unset;color: white;"
+      (click)="matDialogRef.close(false)" mat-icon-button>
       <mat-icon>close</mat-icon>
     </button>
   </div>
@@ -17,64 +14,38 @@
           <mat-form-field [style.width]="'100%'">
             <mat-label class="mat-label-text">{{
               currentLanguageSet?.ro?.personalInfo?.firstName
-            }}</mat-label>
-            <input
-              autocomplete="off"
-              matInput
-              allowText="alphabet"
-              required="true"
-              name="firstName"
-              formControlName="firstName"
-              minlength="2"
-              maxlength="50" />
-            <mat-error
-              *ngIf="newSearchForm.controls['firstName'].errors?.['required']">
+              }}</mat-label>
+            <input autocomplete="off" matInput allowText="alphabet" required="true" name="firstName"
+              formControlName="firstName" minlength="2" maxlength="50" />
+            <mat-error *ngIf="newSearchForm.controls['firstName'].errors?.['required']">
               {{
-                currentLanguageSet?.benDetailsAlert?.firstNameMandatory
-              }}</mat-error
-            >
-            <mat-error
-              *ngIf="newSearchForm.controls['firstName'].errors?.['minlength']">
+              currentLanguageSet?.benDetailsAlert?.firstNameMandatory
+              }}</mat-error>
+            <mat-error *ngIf="newSearchForm.controls['firstName'].errors?.['minlength']">
               {{
-                currentLanguageSet?.benDetailsAlert?.minCharRequired
-              }}</mat-error
-            >
+              currentLanguageSet?.benDetailsAlert?.minCharRequired
+              }}</mat-error>
           </mat-form-field>
         </div>
         <div class="col-xs-12 col-sm-6 box">
           <mat-form-field [style.width]="'100%'">
             <mat-label class="mat-label-text">{{
               currentLanguageSet?.ro?.personalInfo?.lastName
-            }}</mat-label>
-            <input
-              autocomplete="off"
-              matInput
-              allowText="alphaspace"
-              name="lastName"
-              formControlName="lastName"
-              minlength="1"
-              maxlength="50" />
+              }}</mat-label>
+            <input autocomplete="off" matInput allowText="alphaspace" name="lastName" formControlName="lastName"
+              minlength="1" maxlength="50" />
           </mat-form-field>
         </div>
         <div class="col-xs-12 col-sm-6 box">
           <mat-form-field [style.width]="'100%'">
             <mat-label class="mat-label-text">{{
               currentLanguageSet?.ro?.otherInfo?.fatherName
-            }}</mat-label>
-            <input
-              autocomplete="off"
-              matInput
-              allowText="alphabet"
-              name="fatherName"
-              formControlName="fatherName"
-              minlength="2"
-              maxlength="50" />
-            <mat-error
-              *ngIf="newSearchForm.controls['fatherName'].errors?.['minlength']"
-              >{{
-                currentLanguageSet?.common?.pleaseprovideatleast2character
-              }}</mat-error
-            >
+              }}</mat-label>
+            <input autocomplete="off" matInput allowText="alphabet" name="fatherName" formControlName="fatherName"
+              minlength="2" maxlength="50" />
+            <mat-error *ngIf="newSearchForm.controls['fatherName'].errors?.['minlength']">{{
+              currentLanguageSet?.common?.pleaseprovideatleast2character
+              }}</mat-error>
           </mat-form-field>
         </div>
         <div class="col-xs-12 col-sm-6 box">
@@ -82,18 +53,11 @@
             <mat-form-field [style.width]="'100%'">
               <mat-label class="mat-label-text">{{
                 currentLanguageSet?.ro?.personalInfo?.gender
-              }}</mat-label>
-              <mat-select
-                 
-                (selectionChange)="selectGender()"
-                required
-                [style.width]="'100%'"
-                name="gender"
+                }}</mat-label>
+              <mat-select (selectionChange)="selectGender()" required [style.width]="'100%'" name="gender"
                 formControlName="gender">
-                <mat-option
-                  *ngFor="let gender of masterData?.genderMaster"
-                  [value]="gender.genderID"
-                  >{{ gender.genderName }}
+                <mat-option *ngFor="let gender of masterData?.genderMaster" [value]="gender.genderID">{{
+                  gender.genderName }}
                 </mat-option>
               </mat-select>
             </mat-form-field>
@@ -103,15 +67,9 @@
           <mat-form-field [style.width]="'100%'">
             <mat-label class="mat-label-text">{{
               currentLanguageSet?.ro?.personalInfo?.dateOfBirth
-            }}</mat-label>
-            <input
-              matInput
-              [max]="maxDate"
-              [matDatepicker]="picker"
-              formControlName="dob" />
-            <mat-datepicker-toggle
-              matSuffix
-              [for]="picker"></mat-datepicker-toggle>
+              }}</mat-label>
+            <input matInput [max]="maxDate" [matDatepicker]="picker" formControlName="dob" />
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
             <mat-datepicker #picker></mat-datepicker>
           </mat-form-field>
         </div>
@@ -119,75 +77,91 @@
       <section class="row grayborder">
         <div class="col-xs-12 col-sm-6 box">
           <div class="select-container">
-            <mat-form-field [style.width]="'100%'">
-              <mat-label class="mat-label-text">
-                {{ currentLanguageSet?.travel?.state }}
-              </mat-label>
-              <mat-select
-                 
-                (selectionChange)="onStateChange()"
-                required
-                [style.width]="'100%'"
-                name="state"
-                formControlName="stateID">
-                <mat-option *ngFor="let state of states" [value]="state.stateID"
-                  >{{ state.stateName | titlecase }}
+
+
+            <mat-form-field style="width: 100%">
+              <mat-label>{{ currentLanguageSet?.travel?.state }}</mat-label>
+              <input type="text" matInput [formControl]="stateCtrl" [matAutocomplete]="autoState" required>
+              <mat-autocomplete #autoState="matAutocomplete" (optionSelected)="onStateSelected($event.option.value)"
+                [displayWith]="displayStateFn">
+
+                <mat-option *ngFor="let state of filteredStates | async" [value]="state">
+                  {{ state.stateName | titlecase }}
                 </mat-option>
-              </mat-select>
+              </mat-autocomplete>
             </mat-form-field>
           </div>
         </div>
         <div class="col-xs-12 col-sm-6 box">
           <div class="select-container">
-            <mat-form-field [style.width]="'100%'">
-              <mat-label class="mat-label-text">{{
-                currentLanguageSet?.travel?.district
-              }}</mat-label>
-              <mat-select
-                 
-                required
-                [style.width]="'100%'"
-                name="district"
-                formControlName="districtID">
-                <mat-option
-                  *ngFor="let district of districts"
-                  [value]="district.districtID"
-                  >{{ district.districtName | titlecase }}
+
+            <mat-form-field style="width: 100%">
+              <mat-label>{{ currentLanguageSet?.travel?.district }}</mat-label>
+              <input type="text" matInput [formControl]="districtCtrl" [matAutocomplete]="autoDistrict" required>
+              <mat-autocomplete #autoDistrict="matAutocomplete"
+                (optionSelected)="onDistrictSelected($event.option.value)" [displayWith]="displayDistrictFn">
+                <mat-option *ngFor="let district of filteredDistricts | async" [value]="district">
+                  {{ district.districtName | titlecase }}
                 </mat-option>
-              </mat-select>
+              </mat-autocomplete>
             </mat-form-field>
           </div>
         </div>
       </section>
+      <section class="row grayborder">
+
+        <div class="col-xs-12 col-sm-6 box">
+          <div class="select-container">
+
+            <mat-autocomplete #autoBlock="matAutocomplete" (optionSelected)="onBlockSelected($event.option.value)"
+              [displayWith]="displayBlockFn">
+              <mat-option *ngFor="let block of filteredBlocks | async" [value]="block">
+                {{ block.blockName | titlecase }}
+              </mat-option>
+            </mat-autocomplete><mat-form-field style="width: 100%">
+              <mat-label>{{ currentLanguageSet?.block }}</mat-label>
+              <input type="text" matInput [formControl]="blockCtrl" [matAutocomplete]="autoBlock">
+              <mat-autocomplete #autoBlock="matAutocomplete" (optionSelected)="onBlockSelected($event.option.value)"
+                [displayWith]="displayBlockFn">
+                <mat-option *ngFor="let block of filteredBlocks | async" [value]="block">
+                  {{ block.blockName | titlecase }}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+
+          </div>
+        </div>
+        <div class="col-xs-12 col-sm-6 box">
+          <div class="select-container">
+
+            <mat-form-field style="width: 100%">
+              <mat-label>{{ currentLanguageSet?.village }}</mat-label>
+              <input type="text" matInput [formControl]="villageCtrl" [matAutocomplete]="autoVillage">
+              <mat-autocomplete #autoVillage="matAutocomplete" (optionSelected)="onVillageSelected($event.option.value)"
+                [displayWith]="displayVillageFn">
+                <mat-option *ngFor="let village of filteredVillages | async" [value]="village">
+                  {{ village.villageName | titlecase }}
+                </mat-option>
+              </mat-autocomplete>
+            </mat-form-field>
+
+
+          </div>
+        </div>
+      </section>
+
     </form>
   </mat-dialog-content>
 
-  <mat-dialog-actions
-    style="text-align: right"
-    class="padding15 margin15 pull-right">
-    <button
-      mat-raised-button
-      style="margin: 3px"
-      class="mat_blue"
-      type="button"
-      mat-dialog-close
+  <mat-dialog-actions style="text-align: right" class="padding15 margin15 pull-right">
+    <button mat-raised-button style="margin: 3px" class="mat_blue" type="button" mat-dialog-close
       (click)="matDialogRef.close(false)">
       {{ currentLanguageSet?.common?.close }}
     </button>
-    <button
-      mat-raised-button
-      style="margin: 3px"
-      class="mat_blue"
-      type="button"
-      (click)="resetBeneficiaryForm()">
+    <button mat-raised-button style="margin: 3px" class="mat_blue" type="button" (click)="resetBeneficiaryForm()">
       {{ currentLanguageSet?.common?.clear }}
     </button>
-    <button
-      [disabled]="!newSearchForm.valid"
-      mat-raised-button
-      style="margin: 3px"
-      class="mat_blue"
-      type="button"
+    <button [disabled]="!newSearchForm.valid" mat-raised-button style="margin: 3px" class="mat_blue" type="button"
       (click)="getSearchResult(newSearchForm.value)">
       {{ currentLanguageSet?.common?.search }}
     </button>
