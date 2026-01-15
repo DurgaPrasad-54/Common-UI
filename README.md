@@ -31,4 +31,11 @@ If you encounter any issues, bugs, or have feature requests, please file them in
 ## Join Our Community
 
 We’d love to have you join our community discussions and get real-time support!  
-Join our [Discord server](https://discord.gg/FVQWsf5ENS) to connect with contributors, ask questions, and stay updated.  
+Join our [Discord server](https://discord.gg/FVQWsf5ENS) to connect with contributors, ask questions, and stay updated. 
+
+## Documentation
+
+Detailed technical documentation for this service is available on DeepWiki:
+
+- https://deepwiki.com/PSMRI/Common-UI
+
