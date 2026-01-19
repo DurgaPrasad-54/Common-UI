@@ -1,4 +1,6 @@
 # AMRIT - Common-UI
+[![DeepWiki](https://img.shields.io/badge/DeepWiki-PSMRI%2FCommon--UI-blue)](https://deepwiki.com/PSMRI/Common-UI)
+
 
 A configurable framework ccomprising reusable UI elements across multiple AMRIT service lines.
 
@@ -33,8 +35,5 @@ If you encounter any issues, bugs, or have feature requests, please file them in
 We’d love to have you join our community discussions and get real-time support!  
 Join our [Discord server](https://discord.gg/FVQWsf5ENS) to connect with contributors, ask questions, and stay updated. 
 
-## Documentation
-
-[DeepWiki - Common-UI](https://deepwiki.com/PSMRI/Common-UI)
 
 
